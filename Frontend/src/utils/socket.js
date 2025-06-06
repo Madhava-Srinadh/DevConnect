@@ -2,17 +2,21 @@
 
 import { io } from "socket.io-client";
 
-// The URL of your locally running backend:
-const LOCAL_SERVER_URL = "http://localhost:7777";
-
-// If you later host your backend, replace this with something like:
-// const API_SERVER_URL = "https://api.myapp.com";
+// Use the environment variable for the backend URL
+const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
 
 export const createSocketConnection = () => {
-  // Always connect to the local server on port 7777 for now:
-  return io(LOCAL_SERVER_URL, {
-    path: "/socket.io",
+  if (!SOCKET_SERVER_URL) {
+    console.error(
+      "VITE_SOCKET_SERVER_URL is not defined in environment variables!"
+    );
+    // You might want to throw an error or handle this gracefully
+    return null;
+  }
+
+  return io(SOCKET_SERVER_URL, {
+    path: "/socket.io", // Ensure this matches your backend Socket.IO path
     transports: ["websocket", "polling"],
-    // If you ever send auth cookies, add: withCredentials: true
+    withCredentials: true, // You have this enabled in your backend cors, so include it here
   });
 };
