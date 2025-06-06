@@ -10,11 +10,12 @@ require("dotenv").config();
 app.use(
   cors({
     origin: [
-      "https://devconnect18.onrender.com",
-      "https://devconnect18.onrender.com/",
+      "https://devconnect18.onrender.com", "https://devconnect18.onrender.com/",
       "http://localhost:5173",
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Explicitly allow methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Explicitly allow headers your frontend might send
   })
 );
 app.use(express.json());
