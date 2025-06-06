@@ -1,76 +1,137 @@
-import React from "react";
+// src/components/UserCard.jsx
 
-const UserCard = ({ user, onAction, loadingAction, isSelfProfile = false }) => {
-  if (!user || !user.firstName) return null;
+import { useState } from "react";
+import axios from "axios";
+import { BASE_URL } from "../utils/constants";
+import { useDispatch } from "react-redux";
+import { removeUserFromFeed, resetFeed } from "../utils/feedSlice";
+import { useNavigate } from "react-router-dom";
+import { removeUser as removeAuthUser } from "../utils/userSlice";
 
-  const { _id, firstName, lastName, photoUrl, age, gender, about, skills } = user;
+const UserCard = ({ user }) => {
+  // Destructure user properties
+  const { _id, firstName, lastName, photoUrl, age, gender, about, skills } = user || {};
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  // Separate loading states for each button
+  const [loadingIgnore, setLoadingIgnore] = useState(false);
+  const [loadingInterested, setLoadingInterested] = useState(false);
+  const [actionError, setActionError] = useState(null);
+
+  if (!user) return null;
+
+  const handleSendRequest = async (status, userId) => {
+    setActionError(null);
+    if (status === "ignored") {
+      setLoadingIgnore(true);
+    } else {
+      setLoadingInterested(true);
+    }
+
+    try {
+      await axios.post(
+        `${BASE_URL}/request/send/${status}/${userId}`,
+        {},
+        { withCredentials: true }
+      );
+      dispatch(removeUserFromFeed(userId));
+    } catch (err) {
+      console.error(`Error sending ${status} request:`, err);
+      setActionError("Failed to send request. Please try again.");
+
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        dispatch(removeAuthUser());
+        dispatch(resetFeed());
+        localStorage.removeItem("authToken");
+        navigate("/login");
+      }
+    } finally {
+      if (status === "ignored") {
+        setLoadingIgnore(false);
+      } else {
+        setLoadingInterested(false);
+      }
+    }
+  };
 
   return (
-    <div className="relative w-full max-w-md mx-auto rounded-3xl overflow-visible shadow-2xl bg-gradient-to-br from-gray-800 to-gray-900 transform transition-all duration-500 ease-in-out hover:scale-105 pt-24 pb-6 px-6">
-      {/* Profile Image - fully visible and centered */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-500 shadow-xl bg-gray-700">
+    <div className="p-8 max-w-md mx-auto bg-gray-800 rounded-xl shadow-2xl my-10 text-white border border-gray-700">
+      {/* Avatar and Name */}
+      <div className="flex flex-col items-center">
+        <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-purple-500 ring-offset-base-100 ring-offset-2 shadow-lg mb-4">
           <img
             src={photoUrl || "https://via.placeholder.com/160x160?text=Profile+Image"}
             alt={`${firstName}'s profile`}
-            className="w-full h-full object-cover rounded-full"
+            className="object-cover w-full h-full"
           />
         </div>
-      </div>
-
-      {/* User Info */}
-      <div className="text-white text-center mt-4">
-        <h2 className="text-4xl font-extrabold mb-1">
+        <h2 className="text-3xl font-extrabold mb-1 text-purple-400">
           {firstName} {lastName}
         </h2>
         {age && gender && (
-          <p className="text-lg text-gray-300 mb-2">
-            {age}, {gender}
+          <p className="text-lg text-gray-300">
+            {age}, {gender.charAt(0).toUpperCase() + gender.slice(1)}
           </p>
         )}
-        <p className="text-sm text-gray-400 mb-4">
+      </div>
+
+      {/* About Section */}
+      <div className="mt-6">
+        <p className="text-gray-400 text-sm leading-relaxed">
           {about || "Passionate developer looking for exciting collaborations!"}
         </p>
+      </div>
 
-        {/* Skills */}
-        {skills && skills.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-6">
-            {skills.slice(0, 4).map((skill, index) => (
+      {/* Skills */}
+      {skills?.length > 0 && (
+        <>
+          <div className="divider text-gray-600 my-6 text-xl font-semibold">Skills</div>
+          <div className="flex flex-wrap gap-3 justify-center mb-6">
+            {skills.map((skill, index) => (
               <span
                 key={index}
-                className="badge badge-outline badge-info text-xs font-semibold px-3 py-2 border-blue-400 text-blue-300"
+                className="badge badge-lg badge-outline badge-primary text-purple-300 border-purple-500 py-3 px-5 text-base shadow-sm"
               >
                 {skill}
               </span>
             ))}
-            {skills.length > 4 && (
-              <span className="badge badge-outline badge-info text-xs font-semibold px-3 py-2 border-blue-400 text-blue-300">
-                +{skills.length - 4} more
-              </span>
-            )}
           </div>
-        )}
+        </>
+      )}
 
-        {/* Action Buttons */}
-        {!isSelfProfile && onAction && (
-          <div className="flex justify-center gap-6 mt-4">
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white w-14 h-14 rounded-full text-xl"
-              onClick={() => onAction("reject", _id)}
-              disabled={loadingAction}
-            >
-              ✕
-            </button>
-            <button
-              className="bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full text-xl"
-              onClick={() => onAction("accept", _id)}
-              disabled={loadingAction}
-            >
-              ✓
-            </button>
-          </div>
-        )}
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+        <button
+          onClick={() => handleSendRequest("ignored", _id)}
+          disabled={loadingIgnore}
+          className={`btn btn-error btn-lg text-white flex-1 ${loadingIgnore ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          {loadingIgnore ? (
+            <span className="loading loading-spinner loading-md text-white"></span>
+          ) : (
+            "Ignore"
+          )}
+        </button>
+        <button
+          onClick={() => handleSendRequest("interested", _id)}
+          disabled={loadingInterested}
+          className={`btn btn-success btn-lg text-white flex-1 ${loadingInterested ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          {loadingInterested ? (
+            <span className="loading loading-spinner loading-md text-white"></span>
+          ) : (
+            "Interested"
+          )}
+        </button>
       </div>
+
+      {/* Error Message */}
+      {actionError && (
+        <p className="text-red-400 text-sm mt-4 text-center">
+          {actionError}
+        </p>
+      )}
     </div>
   );
 };

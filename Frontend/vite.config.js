@@ -1,24 +1,15 @@
 // vite.config.js
-import { defineConfig, loadEnv } from "vite"; // Import loadEnv
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => {
-  // Accept mode parameter
-  const env = loadEnv(mode, process.cwd(), ""); // Load env variables based on mode
+  const env = loadEnv(mode, process.cwd(), ""); // Still load env variables
 
   return {
     plugins: [react()],
     server: {
-      port: 5173,
-      proxy: {
-        // Use the development API base URL from env variables
-        "/api": {
-          target: env.VITE_API_BASE_URL.replace("/api", ""), // Remove /api for the target
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ""),
-          secure: false, // Set to false if your backend is HTTP locally
-        },
-      },
+      port: 5173, // Your frontend development server port
+      // Proxy configuration removed
     },
   };
 });

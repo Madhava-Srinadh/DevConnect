@@ -1,6 +1,6 @@
-// src/appStore.js (or store/index.js or similar)
+// src/utils/appStore.js
 
-import { configureStore, combineReducers } from "@reduxjs/toolkit"; // Import combineReducers
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import {
   persistStore,
   persistReducer,
@@ -11,31 +11,24 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
-import storage from "redux-persist/lib/storage"; // Defaults to localStorage
+import storage from "redux-persist/lib/storage"; // Defaults to localStorage for web
 
-// Import your existing reducers
+// Your reducer imports
 import userReducer from "./userSlice";
 import feedReducer from "./feedSlice";
-import connectionReducer from "./conectionSlice"; // Typo in original: 'conectionSlice' should be 'connectionSlice'
+import connectionReducer from "./conectionSlice";
 import requestReducer from "./requestSlice";
 
-// -------------------------------------------------------------
-// 1. Configure Redux Persist
-// -------------------------------------------------------------
+// Configure which parts of your Redux state to persist
 const persistConfig = {
-  key: "root", // The key for your persisted state in localStorage
-  storage, // Use localStorage by default
-  // Specify which reducers you want to persist.
-  // It's generally good practice to whitelist only the necessary ones.
-  // For example, you likely want to persist user data, but maybe not dynamic feed data.
-  // Let's assume you want to persist 'user' and 'connections' for now.
-  whitelist: ["user", "connections"],
-  // blacklist: ['feed', 'requests'], // You could use blacklist too
+  key: "root", // Key for the localStorage entry
+  version: 1, // Version of your persisted state schema (useful for migrations)
+  storage, // The storage engine (localStorage)
+  whitelist: ["user"], // Only the 'user' slice will be persisted
+  // blacklist: ['feed', 'connections', 'requests'], // You could also explicitly blacklist if preferred
 };
 
-// -------------------------------------------------------------
-// 2. Combine your reducers into a root reducer
-// -------------------------------------------------------------
+// Combine all your individual reducers
 const rootReducer = combineReducers({
   user: userReducer,
   feed: feedReducer,
@@ -43,29 +36,22 @@ const rootReducer = combineReducers({
   requests: requestReducer,
 });
 
-// -------------------------------------------------------------
-// 3. Create a persisted version of your root reducer
-// -------------------------------------------------------------
+// Create a persisted reducer that wraps your rootReducer
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-// -------------------------------------------------------------
-// 4. Configure the Redux store with the persisted reducer
-// -------------------------------------------------------------
+// Configure the Redux store with the persisted reducer
 export const appStore = configureStore({
   reducer: persistedReducer, // Use the persisted reducer here
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      // This is crucial for Redux-Persist to avoid serializability warnings
+      // Ignore these actions to prevent serializability warnings from redux-persist
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }),
 });
 
-// -------------------------------------------------------------
-// 5. Create a persistor for your store
-// -------------------------------------------------------------
+// Create a persistor object, which handles the saving and rehydrating of the store
 export const persistor = persistStore(appStore);
 
-// Note: You no longer export `default appStore;` but rather `export const appStore`
-// and `export const persistor` because you'll need both in your root React component.
+export default appStore;
