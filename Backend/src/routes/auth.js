@@ -2,13 +2,13 @@ const express = require("express");
 const authRouter = express.Router();
 const { validateSignUpData } = require("../utils/validation");
 const User = require("../models/user");
-const argon2 = require("argon2");
+const bcrypt = require("bcrypt");
 
 authRouter.post("/signup", async (req, res) => {
   try {
     validateSignUpData(req);
     const { firstName, lastName, emailId, password } = req.body;
-    const passwordHash = await argon2.hash(password);
+    const passwordHash = await bcrypt.hash(password, 10);
     
     const user = new User({
       firstName,
@@ -36,7 +36,7 @@ authRouter.post("/login", async (req, res) => {
 
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new Error("Invalid credentials 1");
     }
     const isPasswordValid = await user.validatePassword(password);
 
@@ -48,7 +48,7 @@ authRouter.post("/login", async (req, res) => {
       });
       res.send(user);
     } else {
-      throw new Error("Invalid credentials");
+      throw new Error("Invalid credentials 2");
     }
   } catch (err) {
     res.status(400).send("ERROR : " + err.message);

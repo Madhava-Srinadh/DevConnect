@@ -111,7 +111,6 @@ paymentRouter.post("/payment/upgrade", userAuth, async (req, res) => {
 // ─── RAZORPAY WEBHOOK HANDLER ─────────────────────────────────────────────────
 paymentRouter.post("/payment/webhook", async (req, res) => {
   try {
-    console.log("Webhook Called");
     const webhookSignature = req.get("X-Razorpay-Signature");
     console.log("Webhook Signature", webhookSignature);
 
@@ -122,10 +121,8 @@ paymentRouter.post("/payment/webhook", async (req, res) => {
     );
 
     if (!isWebhookValid) {
-      console.log("Invalid Webhook Signature");
       return res.status(400).json({ msg: "Webhook signature is invalid" });
     }
-    console.log("Valid Webhook Signature");
 
     // ─── Update payment status ───────────────────────────────
     const paymentDetails = req.body.payload.payment.entity;
@@ -136,7 +133,6 @@ paymentRouter.post("/payment/webhook", async (req, res) => {
 
     payment.status = paymentDetails.status;
     await payment.save();
-    console.log("Payment updated in DB");
 
     // ─── If captured, mark user as premium (or upgrade) ──────
     if (paymentDetails.status === "captured") {
@@ -144,7 +140,6 @@ paymentRouter.post("/payment/webhook", async (req, res) => {
       user.isPremium = true;
       user.membershipType = payment.notes.membershipType;
       await user.save();
-      console.log("User upgraded to:", user.membershipType);
     }
 
     // Respond back to Razorpay

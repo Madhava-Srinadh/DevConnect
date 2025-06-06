@@ -1,3 +1,5 @@
+// src/components/NavBar.jsx
+
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,63 +13,77 @@ const NavBar = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(BASE_URL + "/logout", {}, { withCredentials: true });
+      await axios.post(`${BASE_URL}/logout`, {}, { withCredentials: true });
       dispatch(removeUser());
-      return navigate("/login");
+      navigate("/login");
     } catch (err) {
-      // Error logic maybe redirect to error page
-      console.log(err);
+      console.error(err);
     }
   };
 
   return (
-    <div className="navbar bg-base-300">
+    <div className="navbar bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg">
       <div className="flex-1">
-        <Link to="/" className="btn btn-ghost text-xl">
-          👩‍💻 DevTinder
+        <Link to="/" className="btn btn-ghost normal-case text-2xl text-white hover:bg-transparent">
+          👩‍💻 <span className="font-bold">DevTinder</span>
         </Link>
       </div>
       {user && (
-        <div className="flex-none gap-2">
-          <div className="form-control">Welcome, {user.firstName}</div>
-          <div className="dropdown dropdown-end mx-5 flex">
-            <div
-              tabIndex={0}
-              role="button"
-              className="btn btn-ghost btn-circle avatar"
-            >
+        <div className="flex-none space-x-4 items-center hidden sm:flex">
+          <span className="text-white text-lg">Welcome, <span className="font-semibold">{user.firstName}</span></span>
+          <div className="dropdown dropdown-end">
+            <button tabIndex={0} className="btn btn-circle avatar ring-2 ring-white hover:ring-offset-2 hover:ring-offset-purple-600 transition">
               <div className="w-10 rounded-full">
-                <img alt="user photo" src={user.photoUrl} />
+                <img alt="user avatar" src={user.photoUrl} />
               </div>
-            </div>
+            </button>
             <ul
               tabIndex={0}
-              className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
+              className="menu menu-compact dropdown-content mt-3 p-2 shadow bg-white rounded-lg w-48"
             >
-              <li>
-                <Link to="/profile" className="justify-between">
-                  Profile
-                  <span className="badge">New</span>
+              <li className="hover:bg-gray-100 rounded">
+                <Link to="/profile" className="flex items-center space-x-2 px-3 py-2">
+                  <span className="text-xl">🧑‍💼</span>
+                  <span>Profile</span>
                 </Link>
               </li>
-              <li>
-                <Link to="/connections">Connections</Link>
+              <li className="hover:bg-gray-100 rounded">
+                <Link to="/connections" className="flex items-center space-x-2 px-3 py-2">
+                  <span className="text-xl">🤝</span>
+                  <span>Connections</span>
+                </Link>
               </li>
-
-              <li>
-                <Link to="/requests">Requests</Link>
+              <li className="hover:bg-gray-100 rounded">
+                <Link to="/requests" className="flex items-center space-x-2 px-3 py-2">
+                  <span className="text-xl">📥</span>
+                  <span>Requests</span>
+                </Link>
               </li>
-              <li>
-                <Link to="/premium">Premium</Link>
+              <li className="hover:bg-gray-100 rounded">
+                <Link to="/premium" className="flex items-center space-x-2 px-3 py-2">
+                  <span className="text-xl">💎</span>
+                  <span>Premium</span>
+                </Link>
               </li>
-              <li>
-                <a onClick={handleLogout}>Logout</a>
+              <li className="hover:bg-gray-100 rounded">
+                <button onClick={handleLogout} className="flex w-full items-center space-x-2 px-3 py-2 text-left">
+                  <span className="text-xl">🚪</span>
+                  <span>Logout</span>
+                </button>
               </li>
             </ul>
           </div>
         </div>
       )}
+      {!user && (
+        <div className="flex-none">
+          <Link to="/login" className="btn btn-outline btn-sm text-white border-white hover:border-transparent hover:bg-white hover:text-indigo-600 transition">
+            Login
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
+
 export default NavBar;

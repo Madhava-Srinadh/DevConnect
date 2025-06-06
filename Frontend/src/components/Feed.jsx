@@ -1,107 +1,99 @@
+// src/components/Feed.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 import UserCard from "./UserCard";
+import { useDispatch } from "react-redux"; // Import useDispatch
+import { removeUser } from "../utils/userSlice"; // Import removeUser
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const Feed = () => {
   const [users, setUsers] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true); // Added loading state
+  const [error, setError] = useState(null); // Added error state
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const fetchUsers = async (pageNum) => {
+  const fetchUsers = async (currentPage) => {
+    setLoading(true); // Set loading to true before fetch
+    setError(null); // Clear previous errors
     try {
-      setLoading(true);
-      setError(null);
-      const res = await axios.get(`${BASE_URL}/feed`, {
-        params: { page: pageNum, limit: 10 },
+      const res = await axios.get(BASE_URL + "/feed", {
+        params: { page: currentPage, limit: 10 },
         withCredentials: true,
       });
-      
       if (res.data.data.length < 10) {
         setHasMore(false);
       }
-      
-      setUsers(prevUsers => [...prevUsers, ...res.data.data]);
+      setUsers((prev) => [...prev, ...res.data.data]);
     } catch (err) {
-      setError("Failed to load profiles. Please try again.");
-      console.error(err);
+      console.error("Error fetching feed:", err);
+      setError("Failed to load feed. Please try again later."); // Set a user-friendly error message
+      if (err.response && err.response.status === 401) {
+        dispatch(removeUser()); // Clear user state
+        localStorage.removeItem('authToken'); // Clear token
+        navigate("/login"); // Redirect to login
+      }
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false after fetch (success or failure)
     }
   };
 
   useEffect(() => {
     fetchUsers(page);
-  }, [page]);
+  }, [page, dispatch, navigate]); // Added dependencies
 
   const handleNextUser = () => {
-    if (currentIndex + 1 >= users.length && hasMore) {
-      setPage(prev => prev + 1);
+    // Only allow next if not currently loading and there are more users or more pages
+    if (!loading && (currentIndex + 1 < users.length || hasMore)) {
+      if (currentIndex + 1 < users.length) {
+        setCurrentIndex(currentIndex + 1);
+      } else if (hasMore) {
+        setPage(page + 1);
+        setCurrentIndex(0); // Reset index for new page
+      }
     }
-    setCurrentIndex(prev => prev + 1);
   };
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <p className="text-error mb-4">{error}</p>
-        <button 
-          onClick={() => fetchUsers(page)} 
-          className="btn btn-primary"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
+  // Add `onAction` and `loadingAction` props here for UserCard
+  const handleCardAction = async (status, userId) => {
+    // This function will be passed to UserCard
+    // and will call the API for ignored/interested
+    // For now, let's just simulate removing the user from the feed
+    // You would integrate your actual API call here
+    console.log(`User ${userId} was ${status}`);
+    // Simulate API call for demonstration:
+    // await axios.post(BASE_URL + `/request/send/${status}/${userId}`, {}, { withCredentials: true });
+
+    // After action, move to the next user
+    handleNextUser();
+  };
 
   if (loading && users.length === 0) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+    return <div className="p-4 text-center text-lg">Loading amazing developers...</div>;
   }
 
-  if (!loading && users.length === 0) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <p className="text-xl text-center">
-          No profiles available at the moment.<br/>
-          Check back later!
-        </p>
-      </div>
-    );
+  if (error) {
+    return <div className="p-4 text-center text-red-500 text-lg">{error}</div>;
+  }
+
+  if (users.length === 0 && !hasMore && !loading) {
+    return <div className="p-4 text-center text-lg">No more users to show! Check back later.</div>;
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-      {users[currentIndex] && (
-        <>
-          <UserCard user={users[currentIndex]} />
-          <div className="flex gap-4 mt-4">
-            <button
-              onClick={handleNextUser}
-              className="btn btn-primary"
-              disabled={!hasMore && currentIndex >= users.length - 1}
-            >
-              {loading ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                "Next Profile"
-              )}
-            </button>
-          </div>
-          
-          {!hasMore && currentIndex >= users.length - 1 && (
-            <p className="mt-4 text-gray-500">
-              You've seen all available profiles
-            </p>
-          )}
-        </>
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4 bg-gray-900">
+      {users[currentIndex] ? (
+        <UserCard
+          user={users[currentIndex]}
+          onAction={handleCardAction}
+          loadingAction={null} // You can manage individual card loading states if needed
+        />
+      ) : (
+        <div className="text-white text-xl">Fetching more users...</div>
       )}
     </div>
   );

@@ -1,7 +1,9 @@
+// models/user.js
+
 const mongoose = require("mongoose");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
-const argon2 = require("argon2");
+const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema(
   {
@@ -16,13 +18,13 @@ const userSchema = new mongoose.Schema(
     },
     emailId: {
       type: String,
+      lowercase: true,
       required: true,
       unique: true,
-      lowercase: true,
       trim: true,
       validate(value) {
         if (!validator.isEmail(value)) {
-          throw new Error("Invalid Email Address: " + value);
+          throw new Error("Invalid email address: " + value);
         }
       },
     },
@@ -43,13 +45,19 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: ["male", "female", "other"],
-        message: `{VALUE} is not a valid gender`,
+        message: "{VALUE} is not a valid gender type",
       },
+    },
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+    membershipType: {
+      type: String,
     },
     photoUrl: {
       type: String,
-      default:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ6MhT5g2R0T0Zm98t4jjDDQNUsY6NpnQwenw&s",
+      default: "https://geographyandyou.com/images/user-profile.png",
       validate(value) {
         if (!validator.isURL(value)) {
           throw new Error("Invalid Photo URL: " + value);
@@ -58,22 +66,20 @@ const userSchema = new mongoose.Schema(
     },
     about: {
       type: String,
-      default: "Hey there! I am new to DevTinder",
+      default: "This is a default about of the user!",
     },
     skills: {
       type: [String],
     },
-    membershipType: {
-      type: String,
-      enum: ["basic", "silver", "gold"],
-      default: "basic",
-    },
+
+    // ─── NEW FIELDS ─────────────────────────────────────────────────────────────
     isOnline: {
       type: Boolean,
       default: false,
     },
     lastSeen: {
       type: Date,
+      default: null,
     },
   },
   {
@@ -81,6 +87,24 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// ── Helper methods to update status ─────────────────────────────────────────
+userSchema.methods.updateLastSeen = async function () {
+  this.lastSeen = new Date();
+  await this.save();
+};
+
+userSchema.methods.setOnline = async function () {
+  this.isOnline = true;
+  await this.save();
+};
+
+userSchema.methods.setOffline = async function () {
+  this.isOnline = false;
+  this.lastSeen = new Date();
+  await this.save();
+};
+
+// ── JWT + Password helpers (unchanged) ──────────────────────────────────────
 userSchema.methods.getJWT = async function () {
   const user = this;
   const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
@@ -91,8 +115,11 @@ userSchema.methods.getJWT = async function () {
 
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
-  const passwordHash = user.password;
-  return await argon2.verify(passwordHash, passwordInputByUser);
+  const isPasswordValid = await bcrypt.compare(
+    passwordInputByUser,
+    user.password
+  );
+  return isPasswordValid;
 };
 
 module.exports = mongoose.model("User", userSchema);

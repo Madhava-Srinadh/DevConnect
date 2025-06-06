@@ -14,7 +14,7 @@
   "author": "Akshay Saini",
   "license": "ISC",
   "dependencies": {
-    "argon2": "^0.31.2",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",

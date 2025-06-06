@@ -1,4 +1,6 @@
-const socket = require("socket.io");
+// socket.js
+
+const socketio = require("socket.io");
 const crypto = require("crypto");
 const { Chat } = require("../models/chat");
 const User = require("../models/user");
@@ -11,23 +13,33 @@ const getSecretRoomId = (userId, targetUserId) => {
 };
 
 const initializeSocket = (server) => {
-  const io = socket(server, {
+  const io = socketio(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: [
+        "http://localhost:5173",
+        "https://devconnect-geh8.onrender.com/",
+      ], // adjust as needed
+      credentials: true,
     },
   });
 
   io.on("connection", (socket) => {
-    socket.on("userConnected", async (userId) => {
-      await User.findByIdAndUpdate(userId, { isOnline: true });
+    socket.on("joinChat", async ({ firstName, userId, targetUserId }) => {
       socket.userId = userId;
-      socket.broadcast.emit("userOnline", userId);
-    });
+      try {
+        await User.findByIdAndUpdate(userId, { isOnline: true });
+      } catch (err) {
+        console.error("Error setting user online:", err);
+      }
 
-    socket.on("joinChat", ({ firstName, userId, targetUserId }) => {
       const roomId = getSecretRoomId(userId, targetUserId);
-      console.log(firstName + " joined Room : " + roomId);
       socket.join(roomId);
+
+      io.to(roomId).emit("peerStatusChanged", {
+        userId,
+        isOnline: true,
+        lastSeen: null,
+      });
     });
 
     socket.on(
@@ -39,7 +51,6 @@ const initializeSocket = (server) => {
           let chat = await Chat.findOne({
             participants: { $all: [userId, targetUserId] },
           });
-
           if (!chat) {
             chat = new Chat({
               participants: [userId, targetUserId],
@@ -47,51 +58,42 @@ const initializeSocket = (server) => {
             });
           }
 
-          const newMessage = {
+          chat.messages.push({
             senderId: userId,
             text,
-            status: "sent",
-          };
-
-          chat.messages.push(newMessage);
+          });
           await chat.save();
 
+          // ─── INCLUDE senderId IN THE PAYLOAD ─────────────────────────────────
           io.to(roomId).emit("messageReceived", {
-            firstName,
-            lastName,
             text,
-            status: "sent",
-            _id: newMessage._id,
+            senderId: userId,
+            timestamp: new Date().toISOString(),
           });
         } catch (err) {
-          console.log(err);
+          console.error("Error in sendMessage:", err);
         }
       }
     );
 
-    socket.on("messageSeen", async ({ messageId, roomId }) => {
-      try {
-        const chat = await Chat.findOne({ "messages._id": messageId });
-        const message = chat.messages.id(messageId);
-        message.status = "seen";
-        await chat.save();
-        io.to(roomId).emit("messageStatusUpdated", {
-          messageId,
-          status: "seen",
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    });
-
     socket.on("disconnect", async () => {
-      if (socket.userId) {
-        await User.findByIdAndUpdate(socket.userId, {
+      const disconnectedUserId = socket.userId;
+      if (!disconnectedUserId) return;
+
+      try {
+        await User.findByIdAndUpdate(disconnectedUserId, {
           isOnline: false,
           lastSeen: new Date(),
         });
-        socket.broadcast.emit("userOffline", socket.userId);
+      } catch (err) {
+        console.error("Error setting user offline:", err);
       }
+
+      io.emit("peerStatusChanged", {
+        userId: disconnectedUserId,
+        isOnline: false,
+        lastSeen: new Date(),
+      });
     });
   });
 };

@@ -1,3 +1,5 @@
+// models/chat.js
+
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
@@ -10,11 +12,6 @@ const messageSchema = new mongoose.Schema(
     text: {
       type: String,
       required: true,
-    },
-    status: {
-      type: String,
-      enum: ["sent", "seen"],
-      default: "sent",
     },
   },
   { timestamps: true }

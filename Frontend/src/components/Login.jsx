@@ -12,10 +12,13 @@ const Login = () => {
   const [lastName, setLastName] = useState("");
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // Added loading state
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    setError("");
+    setLoading(true);
     try {
       const res = await axios.post(
         BASE_URL + "/login",
@@ -26,13 +29,19 @@ const Login = () => {
         { withCredentials: true }
       );
       dispatch(addUser(res.data));
-      return navigate("/");
+      localStorage.setItem('authToken', res.data.token); // Store token if your backend sends one
+      return navigate("/"); // Navigate to home/feed after successful login
     } catch (err) {
-      setError(err?.response?.data || "Something went wrong");
+      console.error("Login failed:", err);
+      setError(err?.response?.data?.message || "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSignUp = async () => {
+    setError("");
+    setLoading(true);
     try {
       const res = await axios.post(
         BASE_URL + "/signup",
@@ -40,86 +49,112 @@ const Login = () => {
         { withCredentials: true }
       );
       dispatch(addUser(res.data.data));
-      return navigate("/profile");
+      localStorage.setItem('authToken', res.data.data.token); // Store token if your backend sends one
+      return navigate("/profile"); // Navigate to profile after successful signup
     } catch (err) {
-      setError(err?.response?.data || "Something went wrong");
+      console.error("Signup failed:", err);
+      setError(err?.response?.data?.message || "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center my-10">
-      <div className="card bg-base-300 w-96 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title justify-center">
-            {isLoginForm ? "Login" : "Sign Up"}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900 p-4">
+      <div className="card w-full max-w-md bg-white text-gray-900 shadow-2xl rounded-xl">
+        <div className="card-body items-center text-center p-8">
+          <h2 className="card-title text-4xl font-extrabold mb-6 text-indigo-700">
+            {isLoginForm ? "Welcome Back!" : "Join DevTinder"}
           </h2>
-          <div>
+          <p className="text-gray-600 mb-6">
+            {isLoginForm ? "Sign in to connect with other developers." : "Create your account and find your next connection."}
+          </p>
+
+          <div className="w-full space-y-4">
             {!isLoginForm && (
               <>
-                <label className="form-control w-full max-w-xs my-2">
+                <label className="form-control w-full max-w-xs mx-auto">
                   <div className="label">
-                    <span className="label-text">First Name</span>
+                    <span className="label-text text-gray-700">First Name:</span>
                   </div>
                   <input
                     type="text"
                     value={firstName}
-                    className="input input-bordered w-full max-w-xs"
+                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                     onChange={(e) => setFirstName(e.target.value)}
+                    disabled={loading}
+                    placeholder="John"
                   />
                 </label>
-                <label className="form-control w-full max-w-xs my-2">
+                <label className="form-control w-full max-w-xs mx-auto">
                   <div className="label">
-                    <span className="label-text">Last Name</span>
+                    <span className="label-text text-gray-700">Last Name:</span>
                   </div>
                   <input
                     type="text"
                     value={lastName}
-                    className="input input-bordered w-full max-w-xs"
+                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                     onChange={(e) => setLastName(e.target.value)}
+                    disabled={loading}
+                    placeholder="Doe"
                   />
                 </label>
               </>
             )}
-            <label className="form-control w-full max-w-xs my-2">
+            <label className="form-control w-full max-w-xs mx-auto">
               <div className="label">
-                <span className="label-text">Email ID:</span>
+                <span className="label-text text-gray-700">Email ID:</span>
               </div>
               <input
-                type="text"
+                type="email"
                 value={emailId}
-                className="input input-bordered w-full max-w-xs"
+                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => setEmailId(e.target.value)}
+                disabled={loading}
+                placeholder="you@example.com"
               />
             </label>
-            <label className="form-control w-full max-w-xs my-2">
+            <label className="form-control w-full max-w-xs mx-auto">
               <div className="label">
-                <span className="label-text">Password</span>
+                <span className="label-text text-gray-700">Password:</span>
               </div>
               <input
                 type="password"
                 value={password}
-                className="input input-bordered w-full max-w-xs"
+                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                placeholder="••••••••"
               />
             </label>
           </div>
-          <p className="text-red-500">{error}</p>
-          <div className="card-actions justify-center m-2">
+          {error && <p className="text-red-600 mt-4 text-sm">{error}</p>}
+          <div className="card-actions justify-center mt-6">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary btn-lg w-full bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               onClick={isLoginForm ? handleLogin : handleSignUp}
+              disabled={loading}
             >
-              {isLoginForm ? "Login" : "Sign Up"}
+              {loading ? (
+                <span className="loading loading-spinner text-white"></span>
+              ) : (
+                isLoginForm ? "Login" : "Sign Up"
+              )}
             </button>
           </div>
 
           <p
-            className="m-auto cursor-pointer py-2"
-            onClick={() => setIsLoginForm((value) => !value)}
+            className="mt-6 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors duration-200 text-sm"
+            onClick={() => {
+              setIsLoginForm((value) => !value);
+              setError(""); // Clear error when switching forms
+              setFirstName(""); // Clear form fields
+              setLastName("");
+              setEmailId("");
+              setPassword("");
+            }}
           >
-            {isLoginForm
-              ? "New User? Signup Here"
-              : "Existing User? Login Here"}
+            {isLoginForm ? "New User? Create an Account" : "Already a User? Log In Here"}
           </p>
         </div>
       </div>
