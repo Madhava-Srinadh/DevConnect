@@ -17,7 +17,8 @@ const initializeSocket = (server) => {
     cors: {
       origin: [
         "http://localhost:5173",
-        "https://devconnect-geh8.onrender.com/",
+        "https://devconnect18.onrender.com/",
+        "https://devconnect18.onrender.com",
       ], // adjust as needed
       credentials: true,
     },

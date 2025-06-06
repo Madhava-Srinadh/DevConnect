@@ -9,7 +9,11 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["https://devconnect-ikkb.onrender.com","https://devconnect-ikkb.onrender.com/", "http://localhost:5173"],
+    origin: [
+      "https://devconnect18.onrender.com",
+      "https://devconnect18.onrender.com/",
+      "http://localhost:5173",
+    ],
     credentials: true,
   })
 );
