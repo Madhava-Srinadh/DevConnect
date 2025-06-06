@@ -4,6 +4,7 @@ Backend/env
 
 Frontend/node_modules
 Frontend/.env.development
+Frontend/.env.production
 # Logs
 Frontend/logs
 Frontend/*.log
