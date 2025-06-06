@@ -145,8 +145,8 @@ const Premium = () => {
         key: keyId,
         amount,
         currency,
-        name: "DevTinder",
-        description: `DevTinder ${
+        name: "DevConnect",
+        description: `DevConnect ${
           notes.membershipType
             ? notes.membershipType.charAt(0).toUpperCase() +
               notes.membershipType.slice(1)

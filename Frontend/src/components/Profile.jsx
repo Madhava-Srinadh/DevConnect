@@ -26,7 +26,7 @@ const Profile = () => {
         key: keyId, // Use keyId from the backend
         amount,
         currency,
-        name: "DevTinder",
+        name: "DevConnect",
         description: "Membership Upgrade",
         order_id: orderId,
         prefill: {

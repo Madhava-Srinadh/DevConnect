@@ -64,7 +64,7 @@ const Login = () => {
       <div className="card w-full max-w-md bg-white text-gray-900 shadow-2xl rounded-xl">
         <div className="card-body items-center text-center p-8">
           <h2 className="card-title text-4xl font-extrabold mb-6 text-indigo-700">
-            {isLoginForm ? "Welcome Back!" : "Join DevTinder"}
+            {isLoginForm ? "Welcome Back!" : "Join DevConnect"}
           </h2>
           <p className="text-gray-600 mb-6">
             {isLoginForm ? "Sign in to connect with other developers." : "Create your account and find your next connection."}

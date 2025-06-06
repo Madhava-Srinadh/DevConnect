@@ -20,10 +20,10 @@ const NavBar = () => {
   };
 
   return (
-    <div className="navbar bg-gradient-to-r z-49 from-indigo-600 to-purple-600 shadow-lg px-4">
+    <div className="navbar bg-gradient-to-r z-50 from-indigo-600 to-purple-600 shadow-lg px-4">
       <div className="flex-1">
         <Link to="/" className="btn btn-ghost normal-case text-2xl text-white hover:bg-transparent">
-          👩‍💻 <span className="font-bold">DevTinder</span>
+          👩‍💻 <span className="font-bold">DevConnect</span>
         </Link>
       </div>
 
