@@ -3,7 +3,6 @@ const User = require("../models/user");
 
 const userAuth = async (req, res, next) => {
   try {
-
     const { token } = req.cookies;
     if (!token) {
       return res.status(401).send("Please Login!");
@@ -26,7 +25,6 @@ const userAuth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
-    // This outer catch is mostly for unexpected errors
     res.status(500).send("ERROR: " + err.message);
   }
 };

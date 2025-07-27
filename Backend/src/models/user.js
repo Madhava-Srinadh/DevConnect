@@ -72,7 +72,6 @@ const userSchema = new mongoose.Schema(
       type: [String],
     },
 
-    // ─── NEW FIELDS ─────────────────────────────────────────────────────────────
     isOnline: {
       type: Boolean,
       default: false,
@@ -87,7 +86,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// ── Helper methods to update status ─────────────────────────────────────────
 userSchema.methods.updateLastSeen = async function () {
   this.lastSeen = new Date();
   await this.save();
@@ -103,8 +101,18 @@ userSchema.methods.setOffline = async function () {
   this.lastSeen = new Date();
   await this.save();
 };
+/**
+  JWT (JSON Web Token)
+JWT is a compact and secure way to transmit data between parties as a JSON object.
 
-// ── JWT + Password helpers (unchanged) ──────────────────────────────────────
+🔸 Why use JWT?
+For stateless authentication: the server doesn’t store session data.
+
+Tokens are signed using a secret so they can't be tampered with.
+
+Can be used for authorization across microservices or APIs. 
+ */
+
 userSchema.methods.getJWT = async function () {
   const user = this;
   const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
@@ -113,6 +121,17 @@ userSchema.methods.getJWT = async function () {
   return token;
 };
 
+/**
+ bcrypt
+bcrypt is a password hashing library designed for securely storing user passwords.
+
+🔸 Why use bcrypt?
+Plaintext passwords are insecure.
+
+bcrypt hashes passwords so they are unreadable even if the database is hacked.
+
+It adds a "salt" to protect against rainbow table attacks.
+ */
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
   const isPasswordValid = await bcrypt.compare(

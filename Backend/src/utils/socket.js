@@ -1,4 +1,18 @@
 // socket.js
+/**  
+ * What is Socket.IO?
+Socket.IO is a JavaScript library that enables real-time, bidirectional, and event-based communication between a client (e.g., a web browser) and a server. It uses WebSockets as the primary transport mechanism. In this application, Socket.IO is used to:
+
+Handle real-time messaging between users.
+Notify users about online/offline status changes.
+Manage chat rooms for private conversations.
+
+What Are WebSockets?
+WebSockets are a protocol that enables two-way, real-time communication between the client and server over a single, persistent connection.
+WebSockets allow for low-latency communication, making them ideal for applications that require real-time updates, such as chat applications, live notifications, and gaming.
+Unlike traditional HTTP requests, which are request-response based, WebSockets allow the server to push data to the client without the client needing to request it first. This makes WebSockets more efficient for real-time applications.
+WebSockets are initiated by the client, which sends a handshake request to the server. If the server supports WebSockets, it responds with a handshake response, and the connection is established. After that, both the client and server can send messages to each other at any time.
+ */
 
 const socketio = require("socket.io");
 const crypto = require("crypto");
@@ -65,7 +79,6 @@ const initializeSocket = (server) => {
           });
           await chat.save();
 
-          // ─── INCLUDE senderId IN THE PAYLOAD ─────────────────────────────────
           io.to(roomId).emit("messageReceived", {
             text,
             senderId: userId,

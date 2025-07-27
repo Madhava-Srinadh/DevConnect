@@ -1,5 +1,3 @@
-// routes/chat.js
-
 const express = require("express");
 const { userAuth } = require("../middlewares/auth");
 const { Chat } = require("../models/chat");
@@ -18,7 +16,7 @@ chatRouter.get("/chat/:targetUserId", userAuth, async (req, res) => {
   const userId = req.user._id;
 
   try {
-    // 1. Find existing chat or create a new one
+    // 1. Find existing chat or create a new one  
     let chat = await Chat.findOne({
       participants: { $all: [userId, targetUserId] },
     }).populate({

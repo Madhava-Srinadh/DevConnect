@@ -6,7 +6,7 @@ import App from "./App.jsx";
 import "./index.css";
 import axios from "axios";
 // Import your store and persistor from appStore.js
-import { appStore, persistor } from "./utils/appStore"; // Adjust path if appStore.js is elsewhere
+import { appStore, persistor } from "./utils/appStore"; 
 
 // Import Provider from react-redux and PersistGate from redux-persist
 import { Provider } from "react-redux";

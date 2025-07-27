@@ -2,7 +2,6 @@
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
-// Import both appStore and persistor from your configured store
 import appStore, { persistor } from "./utils/appStore";
 
 // --- Redux Persist Import ---
@@ -57,9 +56,6 @@ function App() {
                   <Route path="/chat/:targetUserId" element={<Chat />} />
                 </Route>
               </Route>
-
-              {/* Optional: Add a catch-all route for unmatched paths (e.g., a 404 Not Found page) */}
-              {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
           </BrowserRouter>
         </PersistGate>
