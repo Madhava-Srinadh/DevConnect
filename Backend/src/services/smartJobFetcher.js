@@ -1,7 +1,4 @@
 // services/smartJobFetcher.js
-// Simple JSearch-based job fetcher.
-// Fetches jobs once per request based only on user skills – no caching, no location logic.
-
 const axios = require("axios");
 const { extractSkillsFromText } = require("./skillExtractor");
 
@@ -9,149 +6,81 @@ const JSEARCH_API_KEY = process.env.JSEARCH_API_KEY || process.env.RAPIDAPI_KEY;
 const JSEARCH_HOST = "jsearch.p.rapidapi.com";
 const JSEARCH_COUNTRY = process.env.JSEARCH_COUNTRY || "in";
 
-/**
- * Build search query from user skills
- */
 function buildSearchQueryFromSkills(skills) {
-  if (!skills || skills.length === 0) {
-    return "developer software engineer";
-  }
+  if (!skills.length) return "software developer";
 
-  // Take top 3 skills for query
-  const topSkills = skills.slice(0, 3);
-
-  // Map skills to search-friendly terms
-  const skillMap = {
-    javascript: "javascript developer",
-    python: "python developer",
-    java: "java developer",
-    react: "react developer",
-    "node.js": "node.js developer",
-    "c#": "c# developer",
-    ".net": ".net developer",
-    aws: "aws developer",
-    devops: "devops engineer",
-    "machine learning": "machine learning engineer",
-  };
-
-  // Use mapped terms or original skills
-  const queryTerms = topSkills.map((skill) => {
-    const normalized = skill.toLowerCase();
-    return skillMap[normalized] || `${normalized} developer`;
-  });
-
-  return queryTerms.join(" ");
+  return skills
+    .slice(0, 3)
+    .map((s) => `${s} developer`)
+    .join(" ");
 }
 
-/**
- * Fetch jobs from JSearch API based on skills (single page)
- */
-async function fetchJobsBySkills(skills = [], page = 1) {
+async function fetchJobsBySkills(skills) {
   if (!JSEARCH_API_KEY) {
-    console.warn("[smartJobFetcher] JSEARCH_API_KEY not provided");
-    return { results: [] };
+    console.warn("[JSEARCH] API KEY missing");
+    return [];
   }
 
   const query = buildSearchQueryFromSkills(skills);
-  const url = `https://${JSEARCH_HOST}/search`;
-
-  const params = {
-    query: query,
-    page: page.toString(),
-    num_pages: "1",
-    country: JSEARCH_COUNTRY,
-  };
+  console.log("[JSEARCH] Query:", query);
 
   try {
-    console.log(
-      `[smartJobFetcher] Fetching jobs for query: "${query}" (page ${page})`
-    );
-
-    const r = await axios.get(url, {
-      params,
-      timeout: 20000,
+    const res = await axios.get(`https://${JSEARCH_HOST}/search`, {
+      params: {
+        query,
+        page: "1",
+        num_pages: "1",
+        country: JSEARCH_COUNTRY,
+      },
       headers: {
         "X-RapidAPI-Key": JSEARCH_API_KEY,
         "X-RapidAPI-Host": JSEARCH_HOST,
       },
+      timeout: 20000,
     });
 
-    const results = (r.data && r.data.data) || [];
-    console.log(`[smartJobFetcher] Fetched ${results.length} jobs from API`);
-
-    return { results };
+    console.log("[JSEARCH] Jobs received:", res.data?.data?.length || 0);
+    return res.data?.data || [];
   } catch (err) {
-    console.error(
-      "[smartJobFetcher] API error:",
-      err?.response?.data || err?.message
-    );
-    return { results: [], error: err?.message };
+    console.error("[JSEARCH] ERROR:", err.message);
+    return [];
   }
 }
 
-/**
- * Normalize JSearch job data to a flat object used by the frontend.
- */
 function normalizeJob(raw) {
   return {
-    adId: raw.job_id || raw.id || null,
-    title: raw.job_title || raw.title || null,
-    company: raw.employer_name || raw.company_name || raw.company || null,
-    description:
-      raw.job_description ||
-      (raw.job_highlights?.items ? raw.job_highlights.items.join(" ") : "") ||
-      raw.description ||
-      "",
+    adId: raw.job_id || null,
+    title: raw.job_title || null,
+    company: raw.employer_name || null,
+    description: raw.job_description || "",
     location: {
-      display_name: raw.job_city
-        ? `${raw.job_city}, ${raw.job_state || raw.job_country || ""}`.trim()
-        : raw.job_location || raw.job_country || null,
-      area: raw.job_city ? [raw.job_city] : [],
-      latitude: raw.job_latitude || null,
-      longitude: raw.job_longitude || null,
+      display_name: raw.job_city || raw.job_country || null,
     },
     salary_min: raw.job_min_salary || null,
     salary_max: raw.job_max_salary || null,
-    redirect_url:
-      raw.job_apply_link || raw.job_google_link || raw.redirect_url || null,
-    contract_time: raw.job_employment_type || raw.contract_time || null,
+    redirect_url: raw.job_apply_link || null,
+    contract_time: raw.job_employment_type || null,
   };
 }
 
-/**
- * Get jobs for user skills (no caching, no DB writes).
- */
 async function getJobsForSkills(userSkills) {
-  const cleanSkills = userSkills
-    .map((s) => String(s).toLowerCase().trim())
-    .filter(Boolean);
+  console.log("[FETCHER] Skills input:", userSkills);
 
-  console.log(
-    "[smartJobFetcher] Fetching jobs directly from JSearch (simple mode)"
-  );
+  const rawJobs = await fetchJobsBySkills(userSkills);
+  if (!rawJobs.length) return [];
 
-  const { results: rawJobs, error } = await fetchJobsBySkills(cleanSkills, 1);
-
-  if (error || rawJobs.length === 0) {
-    console.log("[smartJobFetcher] No jobs returned from API");
-    return [];
-  }
-
-  // Normalize and attach extracted skills for each job
-  const processedJobs = rawJobs.slice(0, 30).map((raw) => {
+  return rawJobs.slice(0, 30).map((raw, idx) => {
     const normalized = normalizeJob(raw);
-    const { skills: extractedSkills } = extractSkillsFromText(
-      normalized.description || ""
-    );
+    const extractedSkills = extractSkillsFromText(normalized.description);
+
+    console.log(`\n[FETCHER JOB ${idx + 1}]`, normalized.title);
+    console.log("Extracted skills:", extractedSkills);
+
     return {
       ...normalized,
       skills: extractedSkills,
     };
   });
-
-  return processedJobs;
 }
 
-module.exports = {
-  getJobsForSkills,
-};
+module.exports = { getJobsForSkills };

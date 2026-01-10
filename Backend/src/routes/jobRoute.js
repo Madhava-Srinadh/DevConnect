@@ -4,51 +4,61 @@ const jobRouter = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const { getJobsForSkills } = require("../services/smartJobFetcher");
 
-// Helper: normalize skills from user profile
 function cleanSkills(arr) {
   if (!Array.isArray(arr)) return [];
-  return [
-    ...new Set(arr.map((s) => String(s).toLowerCase().trim()).filter(Boolean)),
-  ];
+  return [...new Set(arr.map((s) => s.toLowerCase().trim()).filter(Boolean))];
 }
 
-// -------- RECOMMEND JOBS FOR USER (simple: based only on skills) --------
+function getJobLimit(user) {
+  if (!user?.isPremium) return 5;
+  if (user.membershipType === "silver") return 10;
+  if (user.membershipType === "gold") return 25;
+  return 5;
+}
+
 jobRouter.get("/jobs/recommendations", userAuth, async (req, res) => {
+
   try {
-    const userSkills = cleanSkills(req.user?.skills || []);
+    const user = req.user;
+    const userSkills = cleanSkills(user?.skills || []);
+    const limit = getJobLimit(user);
+
+
     if (!userSkills.length) {
       return res.json({
         ok: false,
-        error: "user has no skills",
+        message: "No skills found",
         recommendations: [],
       });
     }
 
-    // Fetch jobs directly from JSearch based only on skills
-    const fetchedJobs = await getJobsForSkills(userSkills);
+    const jobs = await getJobsForSkills(userSkills);
 
-    // For simplicity: keep only jobs that match at least one user skill,
-    // and sort by number of matched skills (no location, no percentages).
-    const recommendations = fetchedJobs
+    const recommendations = jobs
       .map((job) => {
-        const jobSkills = (job.skills || []).map((s) => s.toLowerCase());
-        const matched = jobSkills.filter((s) => userSkills.includes(s));
-        const matchCount = matched.length;
+        const matchedSkills = job.skills.filter((js) =>
+          userSkills.some((us) => js.includes(us) || us.includes(js))
+        );
+
         return {
           job,
-          matchedSkills: matched,
-          matchCount,
+          matchedSkills,
+          matchCount: matchedSkills.length,
         };
       })
-      .filter((r) => r.matchCount >= 1)
-      .sort((a, b) => b.matchCount - a.matchCount);
+      .filter((j) => j.matchCount > 0)
+      .sort((a, b) => b.matchCount - a.matchCount)
+      .slice(0, limit); // 🔥 SUBSCRIPTION LIMIT HERE
 
-    res.json({ 
-      ok: true, 
-      recommendations: recommendations.slice(0, 50), // Top 50 recommendations
-      totalMatches: recommendations.length,
+
+    res.json({
+      ok: true,
+      membershipType: user.membershipType || "free",
+      limit,
+      recommendations,
     });
   } catch (err) {
+    console.error("[JOB_RECO_ERROR]", err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

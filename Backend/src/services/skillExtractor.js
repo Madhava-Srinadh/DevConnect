@@ -2,6 +2,7 @@
 // Simple keyword-based skill extraction (no AI/API needed)
 
 // Comprehensive skill dictionary with variations and aliases
+const DEBUG_SKILLS = true;
 const SKILL_DICTIONARY = {
   // Programming Languages
   "python": ["python", "python3", "python2", "django", "flask", "fastapi"],
@@ -72,34 +73,27 @@ const SKILL_DICTIONARY = {
   "project management": ["project management", "pm", "jira", "trello"],
 };
 
-// Normalize skill name (lowercase, trim)
-function normalizeSkill(skill) {
-  return skill.toLowerCase().trim();
-}
-
-// Extract skills from text using keyword matching
 function extractSkillsFromText(text) {
   if (!text || typeof text !== "string") return [];
-  
+
   const normalizedText = text.toLowerCase();
   const foundSkills = new Set();
-  
-  // Check each skill and its variations
+
   for (const [skill, variations] of Object.entries(SKILL_DICTIONARY)) {
-    for (const variation of variations) {
-      // Use word boundary regex to avoid partial matches
-      const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "i");
+    for (const v of variations) {
+      const escaped = v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`\\b${escaped}\\b`, "i");
+
       if (regex.test(normalizedText)) {
         foundSkills.add(skill);
-        break; // Found this skill, no need to check other variations
+        if (DEBUG_SKILLS) {
+        }
+        break;
       }
     }
   }
-  
+
   return Array.from(foundSkills);
 }
-
-
-
 
 module.exports = { extractSkillsFromText };
