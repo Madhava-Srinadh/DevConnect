@@ -5,7 +5,9 @@ const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
 
-const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills";
+// ✅ Added "profileStatus" here so it's visible in Feed & Requests
+const USER_SAFE_DATA =
+  "firstName lastName photoUrl age gender about skills connectionsCount profileStatus";
 
 // Get all the pending connection requests for the loggedIn user
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
@@ -41,7 +43,7 @@ userRouter.get("/user/search", userAuth, async (req, res) => {
         { firstName: { $regex: q, $options: "i" } },
         { lastName: { $regex: q, $options: "i" } },
       ],
-    }).select("firstName lastName photoUrl about skills");
+    }).select("firstName lastName photoUrl about skills profileStatus"); // ✅ Added profileStatus here
 
     if (!users.length) return res.json({ data: [] });
 
@@ -59,7 +61,7 @@ userRouter.get("/user/search", userAuth, async (req, res) => {
         (c) =>
           (c.fromUserId.equals(loggedInUserId) &&
             c.toUserId.equals(user._id)) ||
-          (c.toUserId.equals(loggedInUserId) && c.fromUserId.equals(user._id))
+          (c.toUserId.equals(loggedInUserId) && c.fromUserId.equals(user._id)),
       );
 
       let connectionStatus = "none";
@@ -96,7 +98,7 @@ userRouter.get("/user/search", userAuth, async (req, res) => {
 
     // 🔥 FINAL FILTER (IMPORTANT)
     const filteredUsers = enrichedUsers.filter(
-      (u) => !["ignored", "rejected"].includes(u.connectionStatus)
+      (u) => !["ignored", "rejected"].includes(u.connectionStatus),
     );
 
     res.json({ data: filteredUsers });
@@ -105,8 +107,6 @@ userRouter.get("/user/search", userAuth, async (req, res) => {
     res.status(500).json({ message: "Search failed" });
   }
 });
-
-
 
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
@@ -160,6 +160,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
       ],
     })
       .select(USER_SAFE_DATA)
+      .sort({ connectionsCount: -1 })
       .skip(skip)
       .limit(limit);
 

@@ -18,6 +18,9 @@ import Requests from "./components/Requests";
 import Premium from "./components/Premium";
 import Chat from "./components/Chat";
 import Jobs from "./components/Jobs";
+import Groups from "./components/Groups";
+import GroupChat from "./components/GroupChat";
+
 import ProtectedRoute from "./components/ProtectedRoute"; // Your ProtectedRoute component
 
 function App() {
@@ -56,6 +59,8 @@ function App() {
                   <Route path="/premium" element={<Premium />} />
                   <Route path="/chat/:targetUserId" element={<Chat />} />
                   <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/groups" element={<Groups />} />
+                  <Route path="/groups/:groupId" element={<GroupChat />} />
                 </Route>
               </Route>
             </Routes>

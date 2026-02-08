@@ -179,7 +179,6 @@ paymentRouter.post("/payment/webhook", async (req, res) => {
       payment.notes.requestType === "PAY_REQUEST"
     ) {
       const ConnectionRequest = require("../models/connectionRequest");
-      console.log("Creating premium connection request from webhook");
       await ConnectionRequest.create({
         fromUserId: payment.userId,
         toUserId: payment.notes.toUserId,

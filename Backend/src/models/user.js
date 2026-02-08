@@ -10,7 +10,6 @@ const userSchema = new mongoose.Schema(
     firstName: {
       type: String,
       required: true,
-      minLength: 4,
       maxLength: 50,
     },
     lastName: {
@@ -37,6 +36,18 @@ const userSchema = new mongoose.Schema(
         }
       },
     },
+    // ─────────────────────────────────────────────
+    // NEW: Profile Status (Public vs Private)
+    // ─────────────────────────────────────────────
+    profileStatus: {
+      type: String,
+      enum: {
+        values: ["public", "private"],
+        message: "{VALUE} is not a valid profile status",
+      },
+      default: "public", // Default to public
+    },
+
     dailyRequestCount: {
       type: Number,
       default: 0,
@@ -80,6 +91,20 @@ const userSchema = new mongoose.Schema(
       type: [String],
     },
 
+    // ─────────────────────────────────────────────
+    // Connections Logic
+    // ─────────────────────────────────────────────
+    connections: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    connectionsCount: {
+      type: Number,
+      default: 0,
+    },
+
     isOnline: {
       type: Boolean,
       default: false,
@@ -91,8 +116,18 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+// ─────────────────────────────────────────────
+// AUTOMATION: Update count on save
+// ─────────────────────────────────────────────
+userSchema.pre("save", function (next) {
+  if (this.isModified("connections")) {
+    this.connectionsCount = this.connections.length;
+  }
+  next();
+});
 
 userSchema.methods.updateLastSeen = async function () {
   this.lastSeen = new Date();
@@ -109,17 +144,6 @@ userSchema.methods.setOffline = async function () {
   this.lastSeen = new Date();
   await this.save();
 };
-/**
-  JWT (JSON Web Token)
-JWT is a compact and secure way to transmit data between parties as a JSON object.
-
-🔸 Why use JWT?
-For stateless authentication: the server doesn’t store session data.
-
-Tokens are signed using a secret so they can't be tampered with.
-
-Can be used for authorization across microservices or APIs. 
- */
 
 userSchema.methods.getJWT = async function () {
   const user = this;
@@ -129,22 +153,11 @@ userSchema.methods.getJWT = async function () {
   return token;
 };
 
-/**
- bcrypt
-bcrypt is a password hashing library designed for securely storing user passwords.
-
-🔸 Why use bcrypt?
-Plaintext passwords are insecure.
-
-bcrypt hashes passwords so they are unreadable even if the database is hacked.
-
-It adds a "salt" to protect against rainbow table attacks.
- */
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
   const isPasswordValid = await bcrypt.compare(
     passwordInputByUser,
-    user.password
+    user.password,
   );
   return isPasswordValid;
 };

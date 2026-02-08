@@ -1,22 +1,9 @@
-// socket.js
-/**  
- * What is Socket.IO?
-Socket.IO is a JavaScript library that enables real-time, bidirectional, and event-based communication between a client (e.g., a web browser) and a server. It uses WebSockets as the primary transport mechanism. In this application, Socket.IO is used to:
-
-Handle real-time messaging between users.
-Notify users about online/offline status changes.
-Manage chat rooms for private conversations.
-
-What Are WebSockets?
-WebSockets are a protocol that enables two-way, real-time communication between the client and server over a single, persistent connection.
-WebSockets allow for low-latency communication, making them ideal for applications that require real-time updates, such as chat applications, live notifications, and gaming.
-Unlike traditional HTTP requests, which are request-response based, WebSockets allow the server to push data to the client without the client needing to request it first. This makes WebSockets more efficient for real-time applications.
-WebSockets are initiated by the client, which sends a handshake request to the server. If the server supports WebSockets, it responds with a handshake response, and the connection is established. After that, both the client and server can send messages to each other at any time.
- */
-
 const socketio = require("socket.io");
 const crypto = require("crypto");
+
 const { Chat } = require("../models/chat");
+const Group = require("../models/group");
+const GroupChat = require("../models/groupChat");
 const User = require("../models/user");
 
 const getSecretRoomId = (userId, targetUserId) => {
@@ -29,23 +16,17 @@ const getSecretRoomId = (userId, targetUserId) => {
 const initializeSocket = (server) => {
   const io = socketio(server, {
     cors: {
-      origin: [
-        "http://localhost:5173",
-        "https://devconnect18.onrender.com/",
-        "https://devconnect18.onrender.com",
-      ], // adjust as needed
+      origin: "*",
       credentials: true,
     },
   });
 
   io.on("connection", (socket) => {
-    socket.on("joinChat", async ({ firstName, userId, targetUserId }) => {
+    // ─────── 1-1 CHAT JOIN ───────
+    socket.on("joinChat", async ({ userId, targetUserId }) => {
       socket.userId = userId;
-      try {
-        await User.findByIdAndUpdate(userId, { isOnline: true });
-      } catch (err) {
-        console.error("Error setting user online:", err);
-      }
+
+      await User.findByIdAndUpdate(userId, { isOnline: true });
 
       const roomId = getSecretRoomId(userId, targetUserId);
       socket.join(roomId);
@@ -57,51 +38,109 @@ const initializeSocket = (server) => {
       });
     });
 
-    socket.on(
-      "sendMessage",
-      async ({ firstName, lastName, userId, targetUserId, text }) => {
-        try {
-          const roomId = getSecretRoomId(userId, targetUserId);
+    // ─────── 1-1 SEND MESSAGE ───────
+    socket.on("sendMessage", async ({ userId, targetUserId, text }) => {
+      const roomId = getSecretRoomId(userId, targetUserId);
 
-          let chat = await Chat.findOne({
-            participants: { $all: [userId, targetUserId] },
-          });
-          if (!chat) {
-            chat = new Chat({
-              participants: [userId, targetUserId],
-              messages: [],
-            });
-          }
+      let chat = await Chat.findOne({
+        participants: { $all: [userId, targetUserId] },
+      });
 
-          chat.messages.push({
-            senderId: userId,
-            text,
-          });
-          await chat.save();
-
-          io.to(roomId).emit("messageReceived", {
-            text,
-            senderId: userId,
-            timestamp: new Date().toISOString(),
-          });
-        } catch (err) {
-          console.error("Error in sendMessage:", err);
-        }
+      if (!chat) {
+        chat = new Chat({
+          participants: [userId, targetUserId],
+          messages: [],
+        });
       }
-    );
+
+      chat.messages.push({
+        senderId: userId,
+        text,
+      });
+
+      await chat.save();
+
+      io.to(roomId).emit("messageReceived", {
+        text,
+        senderId: userId,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ─────── GROUP JOIN ───────
+    socket.on("joinGroup", async ({ userId, groupId }) => {
+      socket.userId = userId;
+
+      await User.findByIdAndUpdate(userId, { isOnline: true });
+
+      const group = await Group.findById(groupId);
+      if (!group) return;
+
+      const isMember = group.members.some((member) => {
+        const idToCheck = member.userId._id || member.userId;
+        return idToCheck.toString() === userId.toString();
+      });
+
+      if (isMember) {
+        socket.join(groupId.toString());
+      }
+    });
+
+    // ─────── GROUP SEND MESSAGE ───────
+    socket.on("sendGroupMessage", async ({ userId, groupId, text }) => {
+      try {
+        const group = await Group.findById(groupId);
+        if (!group) return;
+
+        const user = await User.findById(userId);
+
+        const isMember = group.members.some((member) => {
+          const idToCheck = member.userId._id || member.userId;
+          return idToCheck.toString() === userId.toString();
+        });
+
+        if (!isMember) return;
+
+        const mongoose = require("mongoose");
+        const groupObjectId = new mongoose.Types.ObjectId(groupId);
+
+        let groupChat = await GroupChat.findOne({
+          groupId: groupObjectId,
+        });
+
+        if (!groupChat) {
+          groupChat = new GroupChat({
+            groupId: groupObjectId,
+            messages: [],
+          });
+        }
+
+        groupChat.messages.push({
+          senderId: userId,
+          text,
+        });
+
+        await groupChat.save();
+
+        io.to(groupId.toString()).emit("groupMessageReceived", {
+          senderId: userId,
+          senderName: user?.firstName || "User",
+          text,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        // Error handling silently
+      }
+    });
 
     socket.on("disconnect", async () => {
       const disconnectedUserId = socket.userId;
       if (!disconnectedUserId) return;
 
-      try {
-        await User.findByIdAndUpdate(disconnectedUserId, {
-          isOnline: false,
-          lastSeen: new Date(),
-        });
-      } catch (err) {
-        console.error("Error setting user offline:", err);
-      }
+      await User.findByIdAndUpdate(disconnectedUserId, {
+        isOnline: false,
+        lastSeen: new Date(),
+      });
 
       io.emit("peerStatusChanged", {
         userId: disconnectedUserId,

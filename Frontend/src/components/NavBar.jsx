@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../utils/constants"; // Use the same BASE_URL
 import { removeUser } from "../utils/userSlice";
+import { UsersRound } from "lucide-react";
+
 import {
   User,
   Edit,
@@ -36,15 +38,22 @@ const NavBar = () => {
   return (
     <div className="navbar bg-gradient-to-r z-50 from-gray-800 to-gray-900 shadow-lg px-4 border-b border-gray-700">
       <div className="flex-1">
-        <Link to="/" className="btn btn-ghost normal-case text-2xl text-white hover:bg-transparent">
-          <span className="text-purple-400">👩‍💻</span> <span className="font-bold">DevConnect</span>
+        <Link
+          to="/"
+          className="btn btn-ghost normal-case text-2xl text-white hover:bg-transparent"
+        >
+          <span className="text-purple-400">👩‍💻</span>{" "}
+          <span className="font-bold">DevConnect</span>
         </Link>
       </div>
 
       {user ? (
         <div className="flex-none space-x-4 items-center flex">
           <span className="text-white text-lg hidden sm:inline">
-            Welcome, <span className="font-semibold text-purple-300">{user.firstName}</span>
+            Welcome,{" "}
+            <span className="font-semibold text-purple-300">
+              {user.firstName}
+            </span>
           </span>
 
           {/* Profile Dropdown */}
@@ -74,27 +83,46 @@ const NavBar = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/profile/edit" className="flex items-center space-x-2 p-2">
+                <Link
+                  to="/profile/edit"
+                  className="flex items-center space-x-2 p-2"
+                >
                   <Edit size={18} />
                   <span>Edit Profile</span>
                 </Link>
               </li>
               <div className="divider my-1"></div>
               <li>
-                <Link to="/connections" className="flex items-center space-x-2 p-2">
+                <Link
+                  to="/connections"
+                  className="flex items-center space-x-2 p-2"
+                >
                   <Users size={18} />
                   <span>Connections</span>
                 </Link>
               </li>
               <li>
-                <Link to="/requests" className="flex items-center space-x-2 p-2">
+                <Link to="/groups" className="flex items-center space-x-2 p-2">
+                  <UsersRound size={18} />
+                  <span>Groups</span>
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/requests"
+                  className="flex items-center space-x-2 p-2"
+                >
                   <UserPlus size={18} />
                   <span>Requests</span>
                 </Link>
               </li>
               <div className="divider my-1"></div>
               <li>
-                <Link to="/jobs" className="flex items-center space-x-2 p-2 font-semibold text-purple-300">
+                <Link
+                  to="/jobs"
+                  className="flex items-center space-x-2 p-2 font-semibold text-purple-300"
+                >
                   <Briefcase size={18} />
                   <span>Find Jobs</span>
                 </Link>

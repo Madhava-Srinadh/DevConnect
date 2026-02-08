@@ -22,7 +22,6 @@ async function fetchJobsBySkills(skills) {
   }
 
   const query = buildSearchQueryFromSkills(skills);
-  console.log("[JSEARCH] Query:", query);
 
   try {
     const res = await axios.get(`https://${JSEARCH_HOST}/search`, {
@@ -39,7 +38,6 @@ async function fetchJobsBySkills(skills) {
       timeout: 20000,
     });
 
-    console.log("[JSEARCH] Jobs received:", res.data?.data?.length || 0);
     return res.data?.data || [];
   } catch (err) {
     console.error("[JSEARCH] ERROR:", err.message);
@@ -64,7 +62,6 @@ function normalizeJob(raw) {
 }
 
 async function getJobsForSkills(userSkills) {
-  console.log("[FETCHER] Skills input:", userSkills);
 
   const rawJobs = await fetchJobsBySkills(userSkills);
   if (!rawJobs.length) return [];
@@ -73,8 +70,6 @@ async function getJobsForSkills(userSkills) {
     const normalized = normalizeJob(raw);
     const extractedSkills = extractSkillsFromText(normalized.description);
 
-    console.log(`\n[FETCHER JOB ${idx + 1}]`, normalized.title);
-    console.log("Extracted skills:", extractedSkills);
 
     return {
       ...normalized,

@@ -16,6 +16,8 @@ import feedReducer from "./feedSlice";
 import connectionReducer from "./conectionSlice";
 import requestReducer from "./requestSlice";
 import jobReducer from "./jobSlice";
+import groupReducer from "./groupSlice";
+
 
 const persistConfig = {
   key: "root",
@@ -30,6 +32,7 @@ const rootReducer = combineReducers({
   connections: connectionReducer,
   requests: requestReducer,
   jobs: jobReducer,
+  groups: groupReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
