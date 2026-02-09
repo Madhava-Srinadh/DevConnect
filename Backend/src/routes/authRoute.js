@@ -13,8 +13,7 @@ const getGithubAuthUrl = () => {
   return `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=${scopes}`;
 };
 
-// --- AUTH ROUTES ---
-
+// --- SIGNUP (Generic logic restored) ---
 authRouter.post("/signup", async (req, res) => {
   try {
     validateSignUpData(req);
@@ -34,8 +33,8 @@ authRouter.post("/signup", async (req, res) => {
     res.cookie("token", token, {
       expires: new Date(Date.now() + 8 * 3600000),
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: true, // Required for cross-site persistence
+      sameSite: "none", // Allows cookie to be sent on GitHub redirect
     });
 
     res.json({ message: "User Added successfully!", data: savedUser });
@@ -44,6 +43,7 @@ authRouter.post("/signup", async (req, res) => {
   }
 });
 
+// --- LOGIN (Generic logic restored) ---
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
@@ -52,7 +52,6 @@ authRouter.post("/login", async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials." });
     }
-
     const isPasswordValid = await user.validatePassword(password);
 
     if (isPasswordValid) {
@@ -60,8 +59,8 @@ authRouter.post("/login", async (req, res) => {
       res.cookie("token", token, {
         expires: new Date(Date.now() + 8 * 3600000),
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: true, // Required for cross-site persistence
+        sameSite: "none", // Allows cookie to be sent on GitHub redirect
       });
       res.send(user);
     } else {
@@ -84,17 +83,22 @@ authRouter.post("/logout", async (req, res) => {
 
 // --- GITHUB CONNECTION ROUTES ---
 
-// Endpoint for the Groups component to get the URL
 authRouter.get("/auth/github/url", userAuth, (req, res) => {
   res.json({ url: getGithubAuthUrl() });
 });
 
 authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
+  // CRITICAL FIX: Ensure req.user exists to avoid the 'undefined' error
+  if (!req.user) {
+    return res
+      .status(401)
+      .send("Authentication failed: Session cookie not found.");
+  }
+
   const { code } = req.query;
   if (!code) return res.status(400).send("No code provided from GitHub");
 
   try {
-    console.log("Received GitHub code:", code);
     const tokenResponse = await axios.post(
       "https://github.com/login/oauth/access_token",
       {
@@ -104,7 +108,7 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
       },
       { headers: { Accept: "application/json" } },
     );
-    console.log("GitHub token response:", tokenResponse.data);
+
     const accessToken = tokenResponse.data.access_token;
     if (!accessToken)
       return res.status(400).json({ message: "Failed to get token" });
@@ -112,7 +116,7 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
     const userResponse = await axios.get("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    console.log("GitHub user response:", userResponse.data);
+
     const user = req.user;
     user.githubId = userResponse.data.id.toString();
     user.githubUsername = userResponse.data.login;
@@ -120,10 +124,10 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
 
     await user.save();
 
-    // Redirect back to the Groups page
+    // Redirect to the groups page after successful link
     res.redirect("https://devconnect18.onrender.com/groups");
   } catch (err) {
-    console.error("GitHub Link Error:", err);
+    console.error("GitHub Link Error:", err.message);
     res.status(500).send("Failed to connect GitHub account");
   }
 });
