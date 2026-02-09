@@ -106,8 +106,7 @@ const Premium = () => {
             <div className="card bg-base-300 rounded-box grid h-96 w-96 flex-grow place-items-center p-4">
               <h1 className="font-bold text-3xl">Silver Membership</h1>
               <ul className="list-disc text-left w-full px-10">
-                <li>Chat with other people</li>
-                <li>100 connection requests per day</li>
+                <li>10 connection requests per day</li>
                 <li>Verified badge</li>
                 <li>3-month validity</li>
               </ul>
@@ -126,7 +125,6 @@ const Premium = () => {
         <div className="card bg-base-300 rounded-box grid h-96 w-96 flex-grow place-items-center p-4">
           <h1 className="font-bold text-3xl">Gold Membership</h1>
           <ul className="list-disc text-left w-full px-10">
-            <li>Unlimited chat</li>
             <li>Unlimited connection requests</li>
             <li>Premium badge</li>
             <li>6-month validity</li>

@@ -19,8 +19,8 @@ const checkRequestLimit = async (req, res, next) => {
     user.lastRequestDate = new Date();
   }
 
-  let limit = 50; // free
-  if (user.membershipType === "silver") limit = 100;
+  let limit = 5; // free
+  if (user.membershipType === "silver") limit = 10;
   if (user.membershipType === "gold") return next(); // unlimited
 
   if (user.dailyRequestCount >= limit) {

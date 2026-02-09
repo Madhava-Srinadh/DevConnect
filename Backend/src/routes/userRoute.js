@@ -108,6 +108,55 @@ userRouter.get("/user/search", userAuth, async (req, res) => {
   }
 });
 
+userRouter.get(
+  "/user/userConnections/:targetUserId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const loggedInUser = req.user;
+      const { targetUserId } = req.params;
+
+      // 1. Fetch the Target User (we need their profileStatus and connections list)
+      const targetUser = await User.findById(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // 2. Determine Visibility Logic
+      const isSelf = loggedInUser._id.toString() === targetUserId.toString();
+      const isPublic = targetUser.profileStatus === "public";
+
+      // Check if the logged-in user is already inside the target's connection list
+      const isConnected = targetUser.connections.some(
+        (connId) => connId.toString() === loggedInUser._id.toString(),
+      );
+      // 3. Access Control Check
+      // ALLOW IF: It's Me OR It's Public OR We are Connected
+      if (!isSelf && !isPublic && !isConnected) {
+        return res.status(403).json({
+          message:
+            "Account is Private. Connect with them to see their network.",
+          data: [],
+        });
+      }
+
+      // 4. Populate the connections array
+      // Since we maintain the 'connections' array in the User model (from previous steps),
+      // we can simply populate it instead of querying the ConnectionRequest collection again.
+      await targetUser.populate({
+        path: "connections",
+        select: USER_SAFE_DATA, // Only return safe fields
+      });
+      res.json({
+        message: "Connections fetched successfully",
+        data: targetUser.connections,
+      });
+    } catch (err) {
+      res.status(400).send("ERROR: " + err.message);
+    }
+  },
+);
+
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;

@@ -15,6 +15,9 @@ const EditProfile = () => {
   const [gender, setGender] = useState("");
   const [about, setAbout] = useState("");
   const [skills, setSkills] = useState("");
+  // New State for Profile Status
+  const [profileStatus, setProfileStatus] = useState("public");
+  
   const [error, setError] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
@@ -28,13 +31,14 @@ const EditProfile = () => {
       setGender(user.gender || "");
       setAbout(user.about || "");
       setSkills(user.skills ? user.skills.join(", ") : "");
+      setProfileStatus(user.profileStatus || "public");
     }
   }, [user]);
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-gray-900 text-white text-lg">
-        Loading user data or please log in...
+        <span className="loading loading-dots loading-lg"></span>
       </div>
     );
   }
@@ -44,9 +48,12 @@ const EditProfile = () => {
     setLoadingSave(true);
 
     try {
-      const skillsArray = skills.split(",").map(skill => skill.trim()).filter(skill => skill !== "");
+      const skillsArray = skills
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter((skill) => skill !== "");
 
-      await axios.patch(
+      const res = await axios.patch(
         BASE_URL + "/profile/edit",
         {
           firstName,
@@ -56,17 +63,20 @@ const EditProfile = () => {
           gender,
           about,
           skills: skillsArray,
+          profileStatus, // Send the new status
         },
         { withCredentials: true }
-      ).then(res => {
-          dispatch(addUser(res?.data?.data));
-          setShowToast(true);
-          setTimeout(() => {
-            setShowToast(false);
-          }, 3000);
-      });
+      );
+
+      dispatch(addUser(res?.data?.data));
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong saving profile.");
+      setError(
+        err.response?.data?.message || "Something went wrong saving profile."
+      );
     } finally {
       setLoadingSave(false);
     }
@@ -80,72 +90,94 @@ const EditProfile = () => {
     age: age,
     gender: gender,
     about: about,
-    skills: skills.split(",").map(s => s.trim()).filter(s => s !== ""),
+    skills: skills
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== ""),
+    profileStatus: profileStatus,
   };
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start py-10 px-4 gap-10 min-h-[calc(100vh-120px)]">
+      <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start py-10 px-4 gap-10 min-h-[calc(100vh-120px)] bg-gray-950">
         {/* Edit Profile Card (Form) */}
-        <div className="card bg-base-300 w-full max-w-md shadow-2xl rounded-xl p-6 lg:p-8">
+        <div className="card bg-gray-900 border border-gray-800 w-full max-w-md shadow-2xl rounded-2xl p-6 lg:p-8">
           <div className="card-body p-0">
-            <h2 className="text-4xl font-extrabold text-center text-primary mb-6">Edit Your Profile</h2>
+            <h2 className="text-3xl font-extrabold text-center text-white mb-6">
+              Edit Your Profile
+            </h2>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
               <label className="form-control w-full">
-                <div className="label">
-                  <span className="label-text text-base-content/80">First Name:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    First Name
+                  </span>
                 </div>
                 <input
                   type="text"
                   value={firstName}
-                  className="input input-bordered w-full text-base"
+                  className="input input-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Your first name"
                 />
               </label>
+
+              {/* Last Name */}
               <label className="form-control w-full">
-                <div className="label">
-                  <span className="label-text text-base-content/80">Last Name:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Last Name
+                  </span>
                 </div>
                 <input
                   type="text"
                   value={lastName}
-                  className="input input-bordered w-full text-base"
+                  className="input input-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Your last name"
                 />
               </label>
+
+              {/* Photo URL */}
               <label className="form-control w-full md:col-span-2">
-                <div className="label">
-                  <span className="label-text text-base-content/80">Photo URL:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Photo URL
+                  </span>
                 </div>
                 <input
                   type="text"
                   value={photoUrl}
-                  className="input input-bordered w-full text-base"
+                  className="input input-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="Link to your profile photo"
                 />
               </label>
+
+              {/* Age */}
               <label className="form-control w-full">
-                <div className="label">
-                  <span className="label-text text-base-content/80">Age:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Age
+                  </span>
                 </div>
                 <input
                   type="number"
                   value={age}
-                  className="input input-bordered w-full text-base"
+                  className="input input-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setAge(e.target.value)}
-                  placeholder="Your age"
                 />
               </label>
+
+              {/* Gender */}
               <label className="form-control w-full">
-                <div className="label">
-                  <span className="label-text text-base-content/80">Gender:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Gender
+                  </span>
                 </div>
                 <select
                   value={gender}
-                  className="select select-bordered w-full text-base"
+                  className="select select-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setGender(e.target.value)}
                 >
                   <option value="">Select Gender</option>
@@ -154,108 +186,179 @@ const EditProfile = () => {
                   <option value="other">Other</option>
                 </select>
               </label>
+
+              {/* ─────────────────────────────────────────────
+                   NEW: Profile Status Selection
+              ───────────────────────────────────────────── */}
               <label className="form-control w-full md:col-span-2">
-                <div className="label">
-                  <span className="label-text text-base-content/80">About:</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Profile Privacy
+                  </span>
+                </div>
+                <div className="flex gap-4 p-1">
+                  <label className="cursor-pointer label gap-2 border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-800 transition flex-1">
+                    <input 
+                      type="radio" 
+                      name="status" 
+                      className="radio radio-success radio-sm" 
+                      checked={profileStatus === 'public'}
+                      onChange={() => setProfileStatus('public')}
+                    />
+                    <span className="label-text text-gray-300 font-medium">Public 🌍</span>
+                  </label>
+                  <label className="cursor-pointer label gap-2 border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-800 transition flex-1">
+                    <input 
+                      type="radio" 
+                      name="status" 
+                      className="radio radio-warning radio-sm" 
+                      checked={profileStatus === 'private'}
+                      onChange={() => setProfileStatus('private')}
+                    />
+                    <span className="label-text text-gray-300 font-medium">Private 🔒</span>
+                  </label>
+                </div>
+                <div className="label pt-0">
+                   <span className="label-text-alt text-gray-500">
+                     {profileStatus === 'public' 
+                        ? 'Visible to everyone in feed.' 
+                        : 'Hidden from feed. Only connections can see details.'}
+                   </span>
+                </div>
+              </label>
+
+              {/* About */}
+              <label className="form-control w-full md:col-span-2">
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    About
+                  </span>
                 </div>
                 <textarea
                   value={about}
-                  className="textarea textarea-bordered h-24 w-full text-base"
+                  className="textarea textarea-bordered h-24 w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setAbout(e.target.value)}
-                  placeholder="Tell us about yourself..."
                 ></textarea>
               </label>
+
+              {/* Skills */}
               <label className="form-control w-full md:col-span-2">
-                <div className="label">
-                  <span className="label-text text-base-content/80">Skills (comma-separated):</span>
+                <div className="label pb-1">
+                  <span className="label-text text-gray-400 text-xs uppercase font-bold tracking-wider">
+                    Skills (comma-separated)
+                  </span>
                 </div>
                 <input
                   type="text"
                   value={skills}
-                  className="input input-bordered w-full text-base"
+                  className="input input-bordered w-full bg-gray-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                   onChange={(e) => setSkills(e.target.value)}
-                  placeholder="React, Node.js, JavaScript"
                 />
               </label>
             </div>
-            <p className="text-error text-sm mt-4 text-center">{error}</p>
-            <div className="flex justify-center mt-6">
+
+            {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+
+            <div className="flex justify-center mt-8">
               <button
-                className="btn btn-primary btn-lg min-w-[120px]"
+                className="btn btn-primary w-full md:w-auto px-10 rounded-full font-bold shadow-lg shadow-blue-500/30"
                 onClick={saveProfile}
                 disabled={loadingSave}
               >
                 {loadingSave ? (
                   <span className="loading loading-spinner loading-md"></span>
                 ) : (
-                  "Save Profile"
+                  "Save Changes"
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* --- LIVE PREVIEW OF USER PROFILE (Updated UI) --- */}
-        <div className="w-full max-w-sm"> {/* Max width of the preview card */}
-          <div className="relative w-full mx-auto rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-800 to-gray-950 transform group"> {/* Removed hover:scale-105 for static preview */}
-            {/* Subtle Background Animation */}
-            <div className="absolute inset-0 bg-cover bg-center opacity-10 blur-sm transition-all duration-700"
-                 style={{ backgroundImage: `url(${previewUser.photoUrl || 'https://via.placeholder.com/600x400?text=Background'})` }}>
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-90"></div>
+        {/* --- LIVE PREVIEW (UserCard Style) --- */}
+        <div className="w-full max-w-sm sticky top-10">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-widest text-center mb-4">Live Preview</div>
+          
+          {/* Card Container */}
+          <div className="relative w-80 h-[420px] mx-auto rounded-3xl overflow-hidden shadow-2xl bg-[#0f1014] border border-gray-800">
+            {/* Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-800 via-[#121212] to-black opacity-90 z-0"></div>
 
-            {/* Profile Image - Moved slightly lower for better framing */}
-            <div className="relative z-10 pt-8 flex justify-center">
-              <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-purple-600 shadow-xl bg-gray-700 ring-4 ring-purple-400/50">
-                <img
-                  src={previewUser.photoUrl || "https://via.placeholder.com/160x160?text=Profile+Image"}
-                  alt={`${previewUser.firstName}'s profile`}
-                  className="w-full h-full object-cover rounded-full"
-                />
+            <div className="relative z-10 flex flex-col items-center pt-12 px-4 h-full">
+              
+              {/* Avatar with Glow based on Status */}
+              <div className="relative mb-4">
+                <div className={`w-32 h-32 rounded-full p-1 shadow-[0_0_30px_rgba(0,0,0,0.5)] ${
+                    profileStatus === 'public' 
+                    ? 'bg-gradient-to-tr from-green-500 to-emerald-600 shadow-green-500/20' 
+                    : 'bg-gradient-to-tr from-orange-500 to-amber-600 shadow-orange-500/20'
+                }`}>
+                  <img
+                    src={previewUser.photoUrl || "https://via.placeholder.com/150"}
+                    alt={previewUser.firstName}
+                    className="w-full h-full rounded-full object-cover border-4 border-[#0f1014]"
+                  />
+                </div>
+                {/* Status Dot */}
+                <div 
+                   className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 border-[#0f1014] ${
+                       profileStatus === 'public' ? 'bg-green-500' : 'bg-orange-500'
+                   }`}
+                   title={profileStatus}
+                ></div>
               </div>
-            </div>
 
-            {/* User Info */}
-            <div className="relative text-white text-center px-6 pb-6 pt-4 z-10">
-              <h2 className="text-4xl font-extrabold mb-1 text-purple-300 drop-shadow-lg">
+              {/* Name */}
+              <h2 className="text-2xl font-bold text-white tracking-wide text-center">
                 {previewUser.firstName} {previewUser.lastName}
               </h2>
-              {previewUser.age && previewUser.gender && (
-                <p className="text-lg text-gray-300 mb-2">
-                  {previewUser.age}, {previewUser.gender}
-                </p>
-              )}
-              <p className="text-sm text-gray-400 mb-4 italic leading-relaxed">
-                {previewUser.about || "A passionate developer looking for exciting collaborations and new challenges!"}
+
+              {/* Age & Gender */}
+              <p className="text-gray-400 font-medium mt-1 text-sm">
+                 {previewUser.age ? `${previewUser.age}, ` : "Age, "} {previewUser.gender || "Gender"}
               </p>
 
-              {/* Skills */}
-              {previewUser.skills && previewUser.skills.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center mb-6">
-                  {previewUser.skills.slice(0, 4).map((skill, index) => (
-                    <span
-                      key={index}
-                      className="badge badge-outline text-xs font-semibold px-4 py-2 border-blue-500 text-blue-300 bg-blue-900/30 backdrop-blur-sm rounded-full"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                  {previewUser.skills.length > 4 && (
-                    <span className="badge badge-outline text-xs font-semibold px-4 py-2 border-blue-500 text-blue-300 bg-blue-900/30 backdrop-blur-sm rounded-full">
-                      +{previewUser.skills.length - 4} more
-                    </span>
-                  )}
-                </div>
-              )}
-              {/* No Action Buttons in the preview */}
+              {/* Bio */}
+              <p className="text-gray-500 text-sm text-center mt-4 italic px-2 line-clamp-3">
+                {previewUser.about || "Your bio will appear here..."}
+              </p>
+
+              {/* Skills Pills */}
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                {previewUser.skills && previewUser.skills.slice(0, 3).map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 rounded-full border border-blue-900 bg-blue-900/20 text-blue-400 text-xs font-semibold"
+                  >
+                    {skill}
+                  </span>
+                ))}
+                {previewUser.skills && previewUser.skills.length > 3 && (
+                    <span className="px-2 py-1 text-gray-500 text-xs">+{previewUser.skills.length - 3}</span>
+                )}
+              </div>
+              
+              {/* Status Indicator Text */}
+              <div className="mt-auto mb-6">
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                      profileStatus === 'public' 
+                      ? 'border-green-900 bg-green-900/20 text-green-400' 
+                      : 'border-orange-900 bg-orange-900/20 text-orange-400'
+                  }`}>
+                      {profileStatus === 'public' ? 'Public Profile' : 'Private Profile'}
+                  </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
       {showToast && (
-        <div className="z-50 toast toast-top toast-center">
-          <div className="alert alert-success">
-            <span>Profile saved successfully.</span>
+        <div className="toast toast-top toast-center z-50">
+          <div className="alert alert-success shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>Profile updated successfully!</span>
           </div>
         </div>
       )}

@@ -13,12 +13,12 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
     photoUrl,
     about,
     skills,
-    age, // Added age (assuming it's in your DB)
-    gender, // Added gender
+    age,
+    gender,
     connectionStatus: initialStatus = "none",
     requestId,
     connectionsCount = 0,
-    profileStatus = "public",
+    profileStatus = "public", // Default to public
   } = user;
 
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
   const [loading, setLoading] = useState(false);
 
   // ---------------- MODAL STATES ----------------
-  const [showDetailModal, setShowDetailModal] = useState(false); // New: Main Profile Modal
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
 
@@ -36,6 +36,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
   const [purpose, setPurpose] = useState("");
   const [connectionsList, setConnectionsList] = useState([]);
   const [loadingConnections, setLoadingConnections] = useState(false);
+  const [connectionsError, setConnectionsError] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   // ---------------- HELPER: SHOW TOAST ----------------
@@ -56,21 +57,31 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
   };
 
   // ---------------- API ACTIONS ----------------
+
   const fetchConnections = async () => {
     setLoadingConnections(true);
+    setConnectionsError(null);
     try {
-      const res = await axios.get(`${BASE_URL}/user/connections/${_id}`, {
+      const res = await axios.get(`${BASE_URL}/user/userConnections/${_id}`, {
         withCredentials: true,
       });
       setConnectionsList(res.data.data || []);
     } catch (err) {
       console.error("Failed to fetch connections", err);
-      setConnectionsList([]);
+      if (err.response && err.response.status === 403) {
+        setConnectionsError(
+          "🔒 This account is private. Connect to view network.",
+        );
+        setConnectionsList([]);
+      } else {
+        setConnectionsError("Failed to load connections.");
+      }
     } finally {
       setLoadingConnections(false);
     }
   };
 
+  // ✅ UPDATED: Send Request with correct error handling
   const sendRequest = async (status) => {
     if (loading) return;
     setLoading(true);
@@ -82,10 +93,13 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
       );
       if (status === "ignored" || status === "interested") {
         removeEverywhere();
-        setShowDetailModal(false); // Close modal on action
+        setShowDetailModal(false);
       }
     } catch (err) {
       console.error("Send request failed", err);
+      // 🔥 FIX: Extract the specific message from the backend response
+      const errorMsg = err.response?.data?.message || "Failed to send request.";
+      showToast(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -122,6 +136,9 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
       setPurpose("");
     } catch (err) {
       console.error("Premium request failed", err);
+      const errorMsg =
+        err.response?.data?.message || "Failed to process premium request.";
+      showToast(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -139,6 +156,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
       setConnectionStatus("connected");
     } catch (err) {
       console.error("Accept failed", err);
+      showToast(err.response?.data?.message || "Failed to accept request.");
     } finally {
       setLoading(false);
     }
@@ -157,6 +175,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
       setShowDetailModal(false);
     } catch (err) {
       console.error("Reject failed", err);
+      showToast(err.response?.data?.message || "Failed to reject request.");
     } finally {
       setLoading(false);
     }
@@ -229,21 +248,18 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
     );
   };
 
+  // ---------------- UI: MAIN COMPONENT ----------------
   return (
     <>
-      {/* ---------------- MAIN CARD DESIGN (Matches Image) ---------------- */}
+      {/* 1. THE CARD (Visible Grid Item) */}
       <div
         onClick={() => setShowDetailModal(true)}
         className="relative w-80 h-[420px] rounded-3xl overflow-hidden cursor-pointer group transition-all duration-300 hover:scale-[1.02] shadow-2xl bg-[#0f1014]"
       >
-        {/* Background Gradient/Image */}
         <div className="absolute inset-0 bg-gradient-to-b from-gray-800 via-[#121212] to-black opacity-90 z-0"></div>
-        {/* Optional: Add a subtle background image here with low opacity if desired */}
         <div className="absolute top-0 w-full h-1/2 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
 
-        {/* Content Container */}
         <div className="relative z-10 flex flex-col items-center pt-12 px-4 h-full">
-          {/* Avatar with Purple Glow */}
           <div className="relative mb-4">
             <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-purple-600 to-blue-600 shadow-[0_0_30px_rgba(147,51,234,0.5)]">
               <img
@@ -252,29 +268,32 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
                 className="w-full h-full rounded-full object-cover border-4 border-[#0f1014]"
               />
             </div>
-            {/* Status Dot */}
+            {/* Online/Status Indicator */}
             <div
-              className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 border-[#0f1014] ${profileStatus === "public" ? "bg-green-500" : "bg-orange-500"}`}
+              className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 border-[#0f1014] ${
+                profileStatus === "public" ? "bg-green-500" : "bg-orange-500"
+              }`}
+              title={
+                profileStatus === "public"
+                  ? "Public Profile"
+                  : "Private Profile"
+              }
             ></div>
           </div>
 
-          {/* Name */}
           <h2 className="text-3xl font-bold text-purple-200 tracking-wide text-center drop-shadow-lg">
             {firstName} {lastName}
           </h2>
 
-          {/* Age & Gender */}
           <p className="text-gray-400 font-medium mt-1">
-            {age ? `${age}, ` : "21, "} {gender || "Male"}
+            {age ? `${age}, ` : ""} {gender || "Developer"}
           </p>
 
-          {/* Bio */}
           <p className="text-gray-500 text-sm text-center mt-4 italic px-2 line-clamp-2">
             {about ||
               "A passionate developer looking for exciting collaborations!"}
           </p>
 
-          {/* Skills Pills */}
           <div className="flex flex-wrap justify-center gap-2 mt-6">
             {skills &&
               skills.slice(0, 3).map((skill, index) => (
@@ -298,11 +317,10 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
         </div>
       </div>
 
-      {/* ---------------- DETAIL POPUP MODAL ---------------- */}
+      {/* 2. THE DETAIL MODAL (Popup) */}
       {showDetailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-gray-900 w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden relative">
-            {/* Close Button */}
             <button
               onClick={() => setShowDetailModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white z-20"
@@ -310,11 +328,9 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
               ✕
             </button>
 
-            {/* Header Image */}
             <div className="h-24 bg-gradient-to-r from-black to-blue-900 relative"></div>
 
             <div className="px-6 pb-6 -mt-12 relative">
-              {/* Modal Avatar */}
               <img
                 src={photoUrl || "https://via.placeholder.com/150"}
                 alt={firstName}
@@ -327,12 +343,15 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
                 </h2>
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <span>{connectionsCount} Connections</span>
-                  {profileStatus === "private" && <span>• 🔒 Private</span>}
+                  {profileStatus === "private" && (
+                    <span className="flex items-center gap-1 text-orange-400">
+                      • 🔒 Private
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-gray-300 mt-3 text-sm">{about}</p>
 
-                {/* Full Skills List */}
                 <div className="flex flex-wrap gap-2 mt-4">
                   {skills?.map((s, i) => (
                     <span
@@ -347,11 +366,11 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
 
               {/* ACTION AREA */}
               <div className="mt-6 border-t border-gray-800 pt-4">
-                {/* Connection Check Logic */}
+                {/* View Connections Button Logic */}
                 {profileStatus === "private" &&
                 connectionStatus !== "connected" ? (
-                  <div className="text-center py-2 text-yellow-500 text-sm">
-                    Account is Private. Connect to see connections.
+                  <div className="w-full mb-4 py-2 text-sm text-yellow-600 bg-yellow-900/10 border border-yellow-900/30 rounded text-center">
+                    🔒 Connect to view {firstName}'s network
                   </div>
                 ) : (
                   <button
@@ -359,7 +378,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
                       fetchConnections();
                       setShowConnectionsModal(true);
                     }}
-                    className="w-full mb-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded transition"
+                    className="w-full mb-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded transition border border-transparent hover:border-gray-700"
                   >
                     View Connections List
                   </button>
@@ -372,23 +391,31 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
         </div>
       )}
 
-      {/* ---------------- CONNECTIONS LIST MODAL ---------------- */}
+      {/* 3. CONNECTIONS LIST MODAL */}
       {showConnectionsModal && (
         <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center backdrop-blur-md">
-          <div className="bg-gray-900 w-full max-w-md h-[500px] rounded-xl border border-gray-800 flex flex-col">
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-              <h3 className="text-white font-bold">Connections</h3>
+          <div className="bg-gray-900 w-full max-w-md h-[500px] rounded-xl border border-gray-800 flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
+              <h3 className="text-white font-bold">{firstName}'s Network</h3>
               <button
                 onClick={() => setShowConnectionsModal(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white btn btn-sm btn-circle btn-ghost"
               >
                 ✕
               </button>
             </div>
+
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {loadingConnections ? (
                 <div className="flex justify-center p-10">
                   <span className="loading loading-spinner text-purple-500"></span>
+                </div>
+              ) : connectionsError ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                  <span className="text-3xl mb-2">🔒</span>
+                  <p className="text-yellow-500 font-medium">
+                    {connectionsError}
+                  </p>
                 </div>
               ) : connectionsList.length === 0 ? (
                 <p className="text-gray-500 text-center mt-10">
@@ -399,11 +426,11 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
                   {connectionsList.map((conn) => (
                     <div
                       key={conn._id}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded cursor-pointer transition"
+                      className="flex items-center gap-3 p-3 hover:bg-gray-800 rounded-xl cursor-pointer transition border border-transparent hover:border-gray-700"
                     >
                       <img
-                        src={conn.photoUrl}
-                        className="w-10 h-10 rounded-full"
+                        src={conn.photoUrl || "https://via.placeholder.com/150"}
+                        className="w-10 h-10 rounded-full object-cover"
                         alt=""
                       />
                       <div>
@@ -411,7 +438,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
                           {conn.firstName} {conn.lastName}
                         </p>
                         <p className="text-gray-500 text-xs line-clamp-1">
-                          {conn.about}
+                          {conn.about || "No bio available"}
                         </p>
                       </div>
                     </div>
@@ -423,7 +450,7 @@ const UserCard = ({ user, isSearch = false, setSearchResults }) => {
         </div>
       )}
 
-      {/* ---------------- PREMIUM MODAL (Logic unchanged) ---------------- */}
+      {/* 4. PREMIUM MODAL */}
       {showPremiumModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70] backdrop-blur-sm">
           <div className="bg-gray-900 p-6 rounded-xl w-80 md:w-96 border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
