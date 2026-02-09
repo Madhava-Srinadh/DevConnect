@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom"; // ✅ Added useSearchParams
 import { BASE_URL } from "../utils/constants";
 
 const Login = () => {
@@ -13,8 +13,39 @@ const Login = () => {
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // ✅ Get URL params
+
+  // ─────────────────────────────────────────────
+  // NEW: Handle GitHub Redirect Token
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get("token");
+
+    if (tokenFromUrl) {
+      setLoading(true);
+      // 1. Store Token (Backup for refresh)
+      localStorage.setItem("authToken", tokenFromUrl);
+
+      // 2. Fetch Profile immediately using the token
+      axios
+        .get(BASE_URL + "/profile/view", {
+          headers: { Authorization: `Bearer ${tokenFromUrl}` }, // Pass token in header
+          withCredentials: true,
+        })
+        .then((res) => {
+          dispatch(addUser(res.data));
+          navigate("/profile"); // ✅ Success! Go to profile
+        })
+        .catch((err) => {
+          console.error("GitHub Login Failed", err);
+          setError("GitHub login failed. Please try again.");
+          setLoading(false);
+        });
+    }
+  }, [searchParams, dispatch, navigate]);
 
   const handleLogin = async () => {
     setError("");
@@ -27,8 +58,6 @@ const Login = () => {
       );
 
       dispatch(addUser(res.data));
-      // Optional: Backup token storage
-      if (res.data.token) localStorage.setItem("authToken", res.data.token);
 
       // ✅ Check GitHub Requirement
       if (
@@ -62,8 +91,6 @@ const Login = () => {
       );
 
       dispatch(addUser(res.data.data));
-      if (res.data.data.token)
-        localStorage.setItem("authToken", res.data.data.token);
 
       // ✅ Always redirect new users to GitHub
       if (
@@ -92,7 +119,6 @@ const Login = () => {
           <h2 className="card-title text-4xl font-extrabold mb-6 text-indigo-700">
             {isLoginForm ? "Welcome Back!" : "Join DevConnect"}
           </h2>
-          {/* ... inputs same as before ... */}
 
           <div className="w-full space-y-4">
             {!isLoginForm && (

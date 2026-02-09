@@ -11,7 +11,6 @@ const { userAuth } = require("../middlewares/auth");
 // HELPER: Generate GitHub Auth URL
 // ─────────────────────────────────────────────
 const getGithubAuthUrl = () => {
-  // ✅ Included 'delete_repo' scope
   const scopes = "repo,codespace,read:user,delete_repo";
   return `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=${scopes}`;
 };
@@ -43,7 +42,6 @@ authRouter.post("/signup", async (req, res) => {
       sameSite: "none",
     });
 
-    // ✅ NEW USER: Always force GitHub connection
     res.json({
       message: "User Added successfully!",
       data: savedUser,
@@ -75,10 +73,8 @@ authRouter.post("/login", async (req, res) => {
         sameSite: "none",
       });
 
-      // Convert Mongoose document to plain object
       const userData = user.toObject();
 
-      // ✅ CHECK: If GitHub data is missing, ask to authorize
       if (
         !user.githubId ||
         !user.githubAccessToken ||
@@ -112,13 +108,15 @@ authRouter.post("/logout", async (req, res) => {
 // GITHUB CONNECTION ROUTES
 // ─────────────────────────────────────────────
 
-// 1. START: User clicks "Connect GitHub" button
-authRouter.get("/auth/github", userAuth, (req, res) => {
+// 1. START: User clicks "Connect/Login GitHub" button
+// ✅ REMOVED userAuth so new users can login via GitHub too
+authRouter.get("/auth/github", (req, res) => {
   res.json({ url: getGithubAuthUrl() });
 });
 
 // 2. CALLBACK: GitHub redirects back here
-authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
+// ✅ REMOVED userAuth to prevent cookie blocking issues
+authRouter.get("/auth/github/callback", async (req, res) => {
   const { code } = req.query;
 
   if (!code) {
@@ -126,6 +124,7 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
   }
 
   try {
+    // A. Exchange Code for Token
     const tokenResponse = await axios.post(
       "https://github.com/login/oauth/access_token",
       {
@@ -137,13 +136,13 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
     );
 
     const accessToken = tokenResponse.data.access_token;
-
     if (!accessToken) {
       return res
         .status(400)
         .json({ message: "Failed to get token from GitHub" });
     }
 
+    // B. Get User Details
     const userResponse = await axios.get("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -151,14 +150,36 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
     const githubUser = userResponse.data;
     const encryptedToken = encrypt(accessToken);
 
-    const user = req.user;
+    // C. Find User (Fallback to email since we don't have req.user)
+    // Note: GitHub email might be null if private; handle accordingly in prod
+    const userEmail = githubUser.email;
+    let user = await User.findOne({ emailId: userEmail });
+
+    if (!user) {
+      // Option: Auto-signup user here if you want, or show error
+      return res.status(404).send("User not found. Please Sign Up first.");
+    }
+
+    // D. Update User
     user.githubId = githubUser.id.toString();
     user.githubUsername = githubUser.login;
     user.githubAccessToken = encryptedToken;
-
     await user.save();
 
-    res.redirect("https://devconnect18.onrender.com/profile");
+    // E. Generate Token & Redirect to Frontend with Token
+    const token = await user.getJWT();
+
+    // Set cookie as backup (might fail cross-domain)
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
+
+    // ✅ Redirect to Frontend Login Page with Token
+    // Replace with your actual Frontend URL
+    res.redirect(`https://devconnect18.onrender.com/login?token=${token}`);
   } catch (err) {
     console.error("GitHub Link Error:", err);
     res.status(500).send("Failed to connect GitHub account");
