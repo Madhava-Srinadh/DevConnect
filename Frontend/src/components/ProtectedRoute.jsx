@@ -19,23 +19,18 @@ const ProtectedRoute = () => {
         return;
       }
 
-      // If user is null (page reload), try to fetch profile
+      // If user is null (page reload), try to fetch profile from backend API
       try {
-        // ✅ Try to use token from localStorage if cookie fails (optional robustness)
-        const storedToken = localStorage.getItem("authToken");
-        const headers = storedToken
-          ? { Authorization: `Bearer ${storedToken}` }
-          : {};
-
+        // Assuming you have a route like /profile/view that returns the logged-in user
         const res = await axios.get(`${BASE_URL}/profile/view`, {
           withCredentials: true,
-          headers: headers, // Send token if we have it
         });
 
         // Restore Redux state
         dispatch(addUser(res.data));
         setIsChecking(false);
       } catch (err) {
+        // If API fails (401 Unauthorized), THEN redirect to login
         console.error("Session check failed", err);
         navigate("/login");
       }
