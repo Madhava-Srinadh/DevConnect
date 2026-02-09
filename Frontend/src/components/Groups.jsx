@@ -132,7 +132,9 @@ const Groups = () => {
 
       {/* ─── CREATE GROUP PANEL (Collapsible) ─── */}
       <div
-        className={`overflow-hidden transition-all duration-500 ease-in-out ${showCreate ? "max-h-[800px] opacity-100 mb-12" : "max-h-0 opacity-0"}`}
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          showCreate ? "max-h-[800px] opacity-100 mb-12" : "max-h-0 opacity-0"
+        }`}
       >
         <div className="bg-[#121212] border border-gray-800 rounded-3xl p-8 shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
@@ -181,7 +183,11 @@ const Groups = () => {
                           }`}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-blue-500 bg-blue-500" : "border-gray-500"}`}
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-gray-500"
+                        }`}
                       >
                         {isSelected && (
                           <svg
@@ -203,7 +209,9 @@ const Groups = () => {
                         className="w-8 h-8 rounded-full object-cover"
                       />
                       <span
-                        className={`text-sm font-medium ${isSelected ? "text-white" : "text-gray-400"}`}
+                        className={`text-sm font-medium ${
+                          isSelected ? "text-white" : "text-gray-400"
+                        }`}
                       >
                         {user.firstName}
                       </span>
@@ -238,11 +246,11 @@ const Groups = () => {
           {myGroups.map((group) => (
             <div
               key={group._id}
-              onClick={() => navigate(`/groups/${group._id}`)} // This route needs to exist in your App.js
-              className="group relative bg-[#121212] p-6 rounded-2xl border border-gray-800 hover:border-gray-600 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+              onClick={() => navigate(`/groups/${group._id}`)}
+              className="group relative bg-[#121212] p-6 rounded-2xl border border-gray-800 hover:border-gray-600 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col justify-between"
             >
               {/* Card Decoration */}
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-24 w-24 text-white"
@@ -253,12 +261,16 @@ const Groups = () => {
                 </svg>
               </div>
 
-              {/* Content */}
+              {/* Top Section */}
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-inner
-                     ${group.myRole === "admin" ? "bg-gradient-to-br from-yellow-500 to-orange-600" : "bg-gradient-to-br from-blue-500 to-purple-600"}
+                      ${
+                        group.myRole === "admin"
+                          ? "bg-gradient-to-br from-yellow-500 to-orange-600"
+                          : "bg-gradient-to-br from-blue-500 to-purple-600"
+                      }
                   `}
                   >
                     {group.name.charAt(0).toUpperCase()}
@@ -291,29 +303,46 @@ const Groups = () => {
                     </svg>
                     {group.membersCount || 1} Members
                   </span>
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Created recently
-                  </span>
                 </div>
+              </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-800 flex justify-end">
-                  <span className="text-blue-500 text-sm font-semibold flex items-center group-hover:translate-x-1 transition-transform">
-                    Open Chat →
-                  </span>
-                </div>
+              {/* ─────────────────────────────────────────────
+                  ✅ NEW: FOOTER ACTIONS (Codespace + Chat)
+              ───────────────────────────────────────────── */}
+              <div className="relative z-10 mt-6 pt-4 border-t border-gray-800 flex items-center justify-between">
+                {/* 1. CODESPACE BUTTON (Left) */}
+                {group.githubRepoUrl ? (
+                  <a
+                    href={`${group.githubRepoUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()} // Prevent card click
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-900/30 text-green-400 text-xs font-bold border border-green-800 hover:bg-green-900/50 hover:border-green-600 transition-all hover:scale-105"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="16 18 22 12 16 6"></polyline>
+                      <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    Codespace
+                  </a>
+                ) : (
+                  // Empty spacer to keep Chat button on the right
+                  <div></div>
+                )}
+
+                {/* 2. OPEN CHAT LINK (Right) */}
+                <span className="text-blue-500 text-sm font-semibold flex items-center group-hover:translate-x-1 transition-transform">
+                  Open Chat →
+                </span>
               </div>
             </div>
           ))}

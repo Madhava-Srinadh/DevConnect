@@ -12,7 +12,7 @@ const Login = () => {
   const [lastName, setLastName] = useState("");
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,18 +22,31 @@ const Login = () => {
     try {
       const res = await axios.post(
         BASE_URL + "/login",
-        {
-          emailId,
-          password,
-        },
-        { withCredentials: true }
+        { emailId, password },
+        { withCredentials: true },
       );
+
       dispatch(addUser(res.data));
-      localStorage.setItem('authToken', res.data.token); // Store token if your backend sends one
-      return navigate("/"); // Navigate to home/feed after successful login
+      // Token management usually handled by httpOnly cookie,
+      // but if you use localStorage as backup:
+      if (res.data.token) localStorage.setItem("authToken", res.data.token);
+
+      // ✅ NEW: Check if GitHub Auth is required
+      if (
+        res.data.actionRequired === "CONNECT_GITHUB" &&
+        res.data.githubAuthUrl
+      ) {
+        window.location.href = res.data.githubAuthUrl; // Redirect to GitHub
+        return;
+      }
+
+      return navigate("/");
     } catch (err) {
       console.error("Login failed:", err);
-      setError(err?.response?.data?.message || "Login failed. Please check your credentials.");
+      setError(
+        err?.response?.data?.message ||
+          "Login failed. Please check your credentials.",
+      );
     } finally {
       setLoading(false);
     }
@@ -46,14 +59,28 @@ const Login = () => {
       const res = await axios.post(
         BASE_URL + "/signup",
         { firstName, lastName, emailId, password },
-        { withCredentials: true }
+        { withCredentials: true },
       );
+
       dispatch(addUser(res.data.data));
-      localStorage.setItem('authToken', res.data.data.token); // Store token if your backend sends one
-      return navigate("/profile"); // Navigate to profile after successful signup
+      if (res.data.data.token)
+        localStorage.setItem("authToken", res.data.data.token);
+
+      // ✅ NEW: Check if GitHub Auth is required (Always true for signup)
+      if (
+        res.data.actionRequired === "CONNECT_GITHUB" &&
+        res.data.githubAuthUrl
+      ) {
+        window.location.href = res.data.githubAuthUrl; // Redirect to GitHub
+        return;
+      }
+
+      return navigate("/profile");
     } catch (err) {
       console.error("Signup failed:", err);
-      setError(err?.response?.data?.message || "Signup failed. Please try again.");
+      setError(
+        err?.response?.data?.message || "Signup failed. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -67,7 +94,9 @@ const Login = () => {
             {isLoginForm ? "Welcome Back!" : "Join DevConnect"}
           </h2>
           <p className="text-gray-600 mb-6">
-            {isLoginForm ? "Sign in to connect with other developers." : "Create your account and find your next connection."}
+            {isLoginForm
+              ? "Sign in to connect with other developers."
+              : "Create your account and find your next connection."}
           </p>
 
           <div className="w-full space-y-4">
@@ -75,7 +104,9 @@ const Login = () => {
               <>
                 <label className="form-control w-full max-w-xs mx-auto">
                   <div className="label">
-                    <span className="label-text text-gray-700">First Name:</span>
+                    <span className="label-text text-gray-700">
+                      First Name:
+                    </span>
                   </div>
                   <input
                     type="text"
@@ -137,8 +168,10 @@ const Login = () => {
             >
               {loading ? (
                 <span className="loading loading-spinner text-white"></span>
+              ) : isLoginForm ? (
+                "Login"
               ) : (
-                isLoginForm ? "Login" : "Sign Up"
+                "Sign Up"
               )}
             </button>
           </div>
@@ -147,14 +180,16 @@ const Login = () => {
             className="mt-6 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors duration-200 text-sm"
             onClick={() => {
               setIsLoginForm((value) => !value);
-              setError(""); // Clear error when switching forms
-              setFirstName(""); // Clear form fields
+              setError("");
+              setFirstName("");
               setLastName("");
               setEmailId("");
               setPassword("");
             }}
           >
-            {isLoginForm ? "New User? Create an Account" : "Already a User? Log In Here"}
+            {isLoginForm
+              ? "New User? Create an Account"
+              : "Already a User? Log In Here"}
           </p>
         </div>
       </div>

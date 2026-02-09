@@ -39,6 +39,21 @@ const groupSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // ─────────────────────────────────────────────
+    // ✅ NEW: GitHub Repository Details
+    // ─────────────────────────────────────────────
+    githubRepoId: {
+      type: String, // GitHub's internal ID
+      sparse: true,
+    },
+    githubRepoName: {
+      type: String, // e.g. "devconnect-group-123"
+    },
+    githubRepoUrl: {
+      type: String, // e.g. "https://github.com/madhav/devconnect-group-123"
+    },
+    // ─────────────────────────────────────────────
+
     members: {
       type: [memberSchema],
       required: true,

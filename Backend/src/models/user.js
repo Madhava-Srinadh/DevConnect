@@ -36,6 +36,19 @@ const userSchema = new mongoose.Schema(
         }
       },
     },
+    githubId: {
+      type: String,
+      unique: true,
+      sparse: true, // Important: Allows multiple users to have 'null'
+    },
+    githubUsername: {
+      type: String,
+    },
+    // We store the encrypted access token here
+    githubAccessToken: {
+      iv: { type: String },
+      content: { type: String },
+    },
     // ─────────────────────────────────────────────
     // NEW: Profile Status (Public vs Private)
     // ─────────────────────────────────────────────

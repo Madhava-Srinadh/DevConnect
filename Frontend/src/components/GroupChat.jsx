@@ -19,23 +19,18 @@ const GroupChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [connections, setConnections] = useState([]);
-
-  // UI State for the Detail Drawer
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-
-  // Admin/Tag States
   const [selectedUser, setSelectedUser] = useState("");
   const [tagInputs, setTagInputs] = useState({});
 
-  // Admin Check
   const me = group?.members.find(
     (m) => (m.userId?._id || m.userId)?.toString() === userId,
   );
   const isAdmin = me?.role === "admin";
 
-  /* ─────────────────────────────────────────────
-       API CALLS
-  ───────────────────────────────────────────── */
+  // ─────────────────────────────────────────────
+  // API CALLS
+  // ─────────────────────────────────────────────
   const fetchGroup = useCallback(async () => {
     try {
       const res = await axios.get(`${BASE_URL}/groups/${groupId}`, {
@@ -76,9 +71,9 @@ const GroupChat = () => {
     }
   }, []);
 
-  /* ─────────────────────────────────────────────
-       SOCKET & EFFECTS
-  ───────────────────────────────────────────── */
+  // ─────────────────────────────────────────────
+  // SOCKET & EFFECTS
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (!userId || !groupId) return;
 
@@ -127,9 +122,9 @@ const GroupChat = () => {
     }
   }, [messages]);
 
-  /* ─────────────────────────────────────────────
-       ACTIONS
-  ───────────────────────────────────────────── */
+  // ─────────────────────────────────────────────
+  // ACTIONS
+  // ─────────────────────────────────────────────
   const sendMessage = () => {
     if (!newMessage.trim()) return;
 
@@ -156,11 +151,14 @@ const GroupChat = () => {
   const handleAdminAction = async (action, payload) => {
     try {
       let url = `${BASE_URL}/group/${groupId}`;
+
+      // Map actions to routes
       if (action === "add") url += "/add";
-      else if (action === "role") url += "/role";
       else if (action === "remove") url += "/remove";
       else if (action === "tags") url += "/tags";
       else if (action === "leave") url += "/leave";
+      else if (action === "github-write") url += "/github-write";
+      else if (action === "github-read") url += "/github-read";
 
       await axios.post(url, payload, { withCredentials: true });
 
@@ -178,7 +176,7 @@ const GroupChat = () => {
   };
 
   const deleteGroup = async () => {
-    if (!window.confirm("Are you sure you want to delete this group?")) return;
+    // ✅ Removed window.confirm (No Alert)
     try {
       await axios.delete(`${BASE_URL}/group/${groupId}`, {
         withCredentials: true,
@@ -201,9 +199,9 @@ const GroupChat = () => {
 
   return (
     <div className="h-[85vh] max-w-7xl mx-auto flex bg-[#121212] text-gray-100 rounded-3xl overflow-hidden shadow-2xl border border-gray-800 my-4 relative">
-      {/* ── CHAT SECTION (Full Width) ── */}
+      {/* ── CHAT SECTION ── */}
       <div className="flex-1 flex flex-col min-w-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
-        {/* HEADER (Clickable to open info) */}
+        {/* HEADER */}
         <div
           onClick={() => setShowGroupInfo(true)}
           className="px-6 py-4 bg-gray-900/90 backdrop-blur-md border-b border-gray-800 flex items-center justify-between z-10 sticky top-0 cursor-pointer hover:bg-gray-800/80 transition-colors group/header"
@@ -224,7 +222,6 @@ const GroupChat = () => {
               </span>
             </div>
           </div>
-
           <button className="btn btn-ghost btn-circle text-gray-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -243,7 +240,7 @@ const GroupChat = () => {
           </button>
         </div>
 
-        {/* MESSAGES AREA */}
+        {/* MESSAGES */}
         <div
           ref={containerRef}
           className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6 bg-gradient-to-b from-gray-900/50 to-black/50"
@@ -281,7 +278,7 @@ const GroupChat = () => {
           })}
         </div>
 
-        {/* INPUT AREA */}
+        {/* INPUT */}
         <div className="p-4 bg-gray-900 border-t border-gray-800">
           <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
             <input
@@ -308,18 +305,15 @@ const GroupChat = () => {
         </div>
       </div>
 
-      {/* ── GROUP INFO DRAWER (OVERLAY) ── */}
-      {/* Background Dimmer */}
+      {/* ── DRAWER ── */}
       <div
         className={`absolute inset-0 z-20 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${showGroupInfo ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setShowGroupInfo(false)}
       ></div>
 
-      {/* Slide-out Panel */}
       <div
         className={`absolute top-0 right-0 h-full w-full md:w-96 bg-[#161616] border-l border-gray-700 shadow-2xl z-30 transform transition-transform duration-300 ease-out flex flex-col ${showGroupInfo ? "translate-x-0" : "translate-x-full"}`}
       >
-        {/* Drawer Header */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900">
           <h3 className="font-bold text-lg text-white">Group Info</h3>
           <button
@@ -330,9 +324,7 @@ const GroupChat = () => {
           </button>
         </div>
 
-        {/* Drawer Content */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-          {/* Group Details */}
           <div className="text-center mb-6">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl mb-3">
               {group.name.charAt(0).toUpperCase()}
@@ -347,10 +339,12 @@ const GroupChat = () => {
             MEMBERS ({group.members.length})
           </div>
 
-          {/* Member List */}
           <div className="space-y-3">
             {group.members.map((m) => {
               if (!m.userId) return null;
+
+              const hasWriteAccess = m.tags.includes("write");
+
               return (
                 <div
                   key={m.userId._id}
@@ -358,7 +352,6 @@ const GroupChat = () => {
                 >
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2">
-                      
                       <div className="overflow-hidden">
                         <div className="font-semibold text-sm text-gray-200 truncate">
                           {m.userId.firstName} {m.userId.lastName}
@@ -370,13 +363,12 @@ const GroupChat = () => {
                     </div>
                   </div>
 
-                  {/* Tags Display */}
                   {m.tags?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2 pl-10">
+                    <div className="flex flex-wrap gap-1.5 mb-2 pl-1">
                       {m.tags.map((t, i) => (
                         <span
                           key={i}
-                          className="bg-blue-900/30 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 text-[10px] rounded"
+                          className={`px-1.5 py-0.5 text-[10px] rounded border ${t === "write" ? "bg-purple-900/30 text-purple-300 border-purple-500/30" : "bg-blue-900/30 text-blue-300 border-blue-500/30"}`}
                         >
                           #{t}
                         </span>
@@ -384,9 +376,8 @@ const GroupChat = () => {
                     </div>
                   )}
 
-                  {/* Admin Controls */}
                   {isAdmin && (
-                    <div className="mt-2 pt-2 border-t border-gray-700 space-y-2 pl-1">
+                    <div className="mt-2 pt-2 border-t border-gray-700 space-y-2">
                       {/* Tag Input */}
                       <div className="flex gap-1">
                         <input
@@ -412,32 +403,74 @@ const GroupChat = () => {
                           ✓
                         </button>
                       </div>
-                      {/* Role Actions */}
+
+                      {/* Member Actions (Only on others) */}
                       {m.userId._id !== userId && (
-                        <div className="flex gap-2">
-                          {m.role !== "admin" && (
-                            <button
-                              onClick={() =>
-                                handleAdminAction("role", {
-                                  targetUserId: m.userId._id,
-                                  role: "admin",
-                                })
-                              }
-                              className="flex-1 py-1 text-[10px] text-blue-400 bg-blue-900/20 rounded hover:bg-blue-900/40"
-                            >
-                              Promote
-                            </button>
-                          )}
+                        <div className="flex flex-col gap-2">
+                          {/* Remove User */}
                           <button
                             onClick={() =>
                               handleAdminAction("remove", {
                                 targetUserId: m.userId._id,
                               })
                             }
-                            className="flex-1 py-1 text-[10px] text-red-400 bg-red-900/20 rounded hover:bg-red-900/40"
+                            className="w-full py-1.5 text-[10px] font-semibold text-red-300 bg-red-900/30 border border-red-500/30 rounded hover:bg-red-900/50 transition-colors"
                           >
-                            Remove
+                            ✕ Remove
                           </button>
+
+                          {/* GitHub Write Access Toggle */}
+                          {group.githubRepoUrl && (
+                            <>
+                              {!hasWriteAccess ? (
+                                <button
+                                  onClick={() =>
+                                    handleAdminAction("github-write", {
+                                      targetUserId: m.userId._id,
+                                    })
+                                  }
+                                  className="w-full py-1.5 text-[10px] font-bold text-purple-300 bg-purple-900/30 border border-purple-500/30 rounded hover:bg-purple-900/50 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-3 h-3"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Grant Write Access
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleAdminAction("github-read", {
+                                      targetUserId: m.userId._id,
+                                    })
+                                  }
+                                  className="w-full py-1.5 text-[10px] font-bold text-orange-300 bg-orange-900/30 border border-orange-500/30 rounded hover:bg-orange-900/50 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-3 h-3"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Revoke Write Access
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -448,7 +481,7 @@ const GroupChat = () => {
           </div>
         </div>
 
-        {/* Drawer Footer (Actions) */}
+        {/* FOOTER */}
         <div className="p-4 bg-gray-900 border-t border-gray-800">
           {isAdmin ? (
             <div className="space-y-3">
