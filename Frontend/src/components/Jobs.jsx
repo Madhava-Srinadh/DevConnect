@@ -8,19 +8,26 @@ const Jobs = () => {
   const user = useSelector((store) => store.user);
   const navigate = useNavigate();
 
+  // 1. Store ALL fetched jobs here
+  const [allRecommendedJobs, setAllRecommendedJobs] = useState([]);
+  // 2. Store only the CURRENT PAGE jobs here
   const [jobs, setJobs] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Pagination & Limits
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [limit, setLimit] = useState(0); // Max jobs allowed by plan
-  const [totalFound, setTotalFound] = useState(0); // Total jobs found in DB
+  const [limit, setLimit] = useState(0);
+  const [totalFound, setTotalFound] = useState(0);
   const [membership, setMembership] = useState("free");
 
   const JOBS_PER_PAGE = 6;
 
+  // ─────────────────────────────────────────────
+  // 1. FETCH DATA (Only once on mount/user change)
+  // ─────────────────────────────────────────────
   const fetchRecommended = async () => {
     setLoading(true);
     setError(null);
@@ -29,17 +36,18 @@ const Jobs = () => {
         withCredentials: true,
       });
 
-      const allJobs = res.data.recommendations || [];
+      const allData = res.data.recommendations || [];
+
+      // Store the master list
+      setAllRecommendedJobs(allData);
+
+      // Set Metadata
       setLimit(res.data.limit);
       setMembership(res.data.membershipType);
-      setTotalFound(allJobs.length);
+      setTotalFound(allData.length);
 
-      // Client-side pagination logic
-      // Since the backend sends all matches at once, we slice them here.
-      const startIndex = (currentPage - 1) * JOBS_PER_PAGE;
-      const endIndex = startIndex + JOBS_PER_PAGE;
-      setJobs(allJobs.slice(startIndex, endIndex));
-      setTotalPages(Math.ceil(allJobs.length / JOBS_PER_PAGE));
+      // Calculate total pages immediately
+      setTotalPages(Math.ceil(allData.length / JOBS_PER_PAGE));
     } catch (err) {
       console.error(err);
       if (err?.response?.status === 401) navigate("/login");
@@ -52,7 +60,19 @@ const Jobs = () => {
   useEffect(() => {
     if (user) fetchRecommended();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentPage]); // Refetch/Reslice when page changes
+  }, [user]); // ⚡ Dependency removed: currentPage
+
+  // ─────────────────────────────────────────────
+  // 2. SLICE DATA (Runs instantly when page changes)
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * JOBS_PER_PAGE;
+    const endIndex = startIndex + JOBS_PER_PAGE;
+
+    // Slice from memory instead of fetching
+    const currentSlice = allRecommendedJobs.slice(startIndex, endIndex);
+    setJobs(currentSlice);
+  }, [currentPage, allRecommendedJobs]);
 
   // 🎨 Helper for membership color
   const getMembershipColor = (type) => {
@@ -85,7 +105,7 @@ const Jobs = () => {
         <div
           className={`px-5 py-2 rounded-full font-bold shadow-lg ${getMembershipColor(membership)}`}
         >
-          {membership.toUpperCase()} PLAN
+          {membership ? membership.toUpperCase() : "FREE"} PLAN
         </div>
       </div>
 
@@ -96,7 +116,7 @@ const Jobs = () => {
           jobs on this page
         </span>
         <span className="text-gray-400 text-xs uppercase tracking-wider">
-          Limit: {totalFound} / {limit === 9999 ? "∞" : limit}
+          Total: {totalFound} / Limit: {limit === 9999 ? "∞" : limit}
         </span>
       </div>
 
@@ -115,7 +135,9 @@ const Jobs = () => {
       ) : jobs.length === 0 ? (
         <div className="text-center py-20 opacity-50">
           <h3 className="text-2xl font-bold">No Jobs Found</h3>
-          <p>Try adding more skills to your profile.</p>
+          <p>
+            Try adding more skills to your profile or wait for new postings.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
@@ -128,7 +150,9 @@ const Jobs = () => {
               <div>
                 <div className="flex justify-between items-start mb-4">
                   <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center text-xl font-bold text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    {item.job.company.charAt(0)}
+                    {item.job.company
+                      ? item.job.company.charAt(0).toUpperCase()
+                      : "?"}
                   </div>
                   {item.matchedSkills.length > 0 && (
                     <span className="px-2 py-1 rounded text-[10px] font-bold bg-green-900/30 text-green-400 border border-green-800">
@@ -176,9 +200,10 @@ const Jobs = () => {
         </div>
       )}
 
-      {/* ── PAGINATION ── */}
+      {/* ── PAGINATION CONTROLS ── */}
       {!loading && totalPages > 1 && (
         <div className="mt-12 flex items-center gap-2">
+          {/* Previous Button */}
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
@@ -187,6 +212,7 @@ const Jobs = () => {
             ❮
           </button>
 
+          {/* Page Numbers */}
           <div className="flex gap-2">
             {[...Array(totalPages)].map((_, idx) => (
               <button
@@ -203,6 +229,7 @@ const Jobs = () => {
             ))}
           </div>
 
+          {/* Next Button */}
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
