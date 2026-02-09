@@ -3,8 +3,7 @@ const User = require("./models/user"); // ⚠️ Check path to your User model
 const bcrypt = require("bcrypt");
 
 // ⚠️ REPLACE WITH YOUR MONGO URI
-const MONGO_URI =
-  "mongodb+srv://madhavasrinadh:Srinadh1699@mongo-cluster.or7d0.mongodb.net/DevConnect";
+const MONGO_URI =;
 
 const usersData = [
   {
