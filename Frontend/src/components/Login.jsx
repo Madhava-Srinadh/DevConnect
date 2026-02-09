@@ -12,7 +12,7 @@ const Login = () => {
   const [lastName, setLastName] = useState("");
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Added loading state
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,24 +22,15 @@ const Login = () => {
     try {
       const res = await axios.post(
         BASE_URL + "/login",
-        { emailId, password },
+        {
+          emailId,
+          password,
+        },
         { withCredentials: true },
       );
-
       dispatch(addUser(res.data));
-      // Optional: Backup token storage
-      if (res.data.token) localStorage.setItem("authToken", res.data.token);
-
-      // ✅ Check GitHub Requirement
-      if (
-        res.data.actionRequired === "CONNECT_GITHUB" &&
-        res.data.githubAuthUrl
-      ) {
-        window.location.href = res.data.githubAuthUrl;
-        return;
-      }
-
-      return navigate("/");
+      localStorage.setItem("authToken", res.data.token); // Store token if your backend sends one
+      return navigate("/"); // Navigate to home/feed after successful login
     } catch (err) {
       console.error("Login failed:", err);
       setError(
@@ -60,21 +51,9 @@ const Login = () => {
         { firstName, lastName, emailId, password },
         { withCredentials: true },
       );
-
       dispatch(addUser(res.data.data));
-      if (res.data.data.token)
-        localStorage.setItem("authToken", res.data.data.token);
-
-      // ✅ Always redirect new users to GitHub
-      if (
-        res.data.actionRequired === "CONNECT_GITHUB" &&
-        res.data.githubAuthUrl
-      ) {
-        window.location.href = res.data.githubAuthUrl;
-        return;
-      }
-
-      return navigate("/profile");
+      localStorage.setItem("authToken", res.data.data.token); // Store token if your backend sends one
+      return navigate("/profile"); // Navigate to profile after successful signup
     } catch (err) {
       console.error("Signup failed:", err);
       setError(
@@ -92,7 +71,11 @@ const Login = () => {
           <h2 className="card-title text-4xl font-extrabold mb-6 text-indigo-700">
             {isLoginForm ? "Welcome Back!" : "Join DevConnect"}
           </h2>
-          {/* ... inputs same as before ... */}
+          <p className="text-gray-600 mb-6">
+            {isLoginForm
+              ? "Sign in to connect with other developers."
+              : "Create your account and find your next connection."}
+          </p>
 
           <div className="w-full space-y-4">
             {!isLoginForm && (
@@ -106,7 +89,7 @@ const Login = () => {
                   <input
                     type="text"
                     value={firstName}
-                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900"
+                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                     onChange={(e) => setFirstName(e.target.value)}
                     disabled={loading}
                     placeholder="John"
@@ -119,7 +102,7 @@ const Login = () => {
                   <input
                     type="text"
                     value={lastName}
-                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900"
+                    className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                     onChange={(e) => setLastName(e.target.value)}
                     disabled={loading}
                     placeholder="Doe"
@@ -134,7 +117,7 @@ const Login = () => {
               <input
                 type="email"
                 value={emailId}
-                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900"
+                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => setEmailId(e.target.value)}
                 disabled={loading}
                 placeholder="you@example.com"
@@ -147,19 +130,17 @@ const Login = () => {
               <input
                 type="password"
                 value={password}
-                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900"
+                className="input input-bordered w-full bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
                 placeholder="••••••••"
               />
             </label>
           </div>
-
           {error && <p className="text-red-600 mt-4 text-sm">{error}</p>}
-
           <div className="card-actions justify-center mt-6">
             <button
-              className="btn btn-primary btn-lg w-full bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700"
+              className="btn btn-primary btn-lg w-full bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               onClick={isLoginForm ? handleLogin : handleSignUp}
               disabled={loading}
             >
@@ -174,10 +155,14 @@ const Login = () => {
           </div>
 
           <p
-            className="mt-6 cursor-pointer text-indigo-500 hover:text-indigo-700 text-sm"
+            className="mt-6 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors duration-200 text-sm"
             onClick={() => {
-              setIsLoginForm(!isLoginForm);
-              setError("");
+              setIsLoginForm((value) => !value);
+              setError(""); // Clear error when switching forms
+              setFirstName(""); // Clear form fields
+              setLastName("");
+              setEmailId("");
+              setPassword("");
             }}
           >
             {isLoginForm
