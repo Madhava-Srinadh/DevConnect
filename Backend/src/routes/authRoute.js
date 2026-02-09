@@ -158,7 +158,7 @@ authRouter.get("/auth/github/callback", userAuth, async (req, res) => {
 
     await user.save();
 
-    res.redirect("http://localhost:5173/profile");
+    res.redirect("https://devconnect18.onrender.com/profile");
   } catch (err) {
     console.error("GitHub Link Error:", err);
     res.status(500).send("Failed to connect GitHub account");
